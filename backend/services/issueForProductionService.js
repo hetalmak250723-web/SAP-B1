@@ -27,6 +27,61 @@ const PO_STATUS_LABEL = {
   boposCancelled: 'Cancelled',
 };
 
+const uniqueNumbers = (values = []) =>
+  [...new Set(values.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0))];
+
+const enrichIssueLinesWithProductionOrders = async (lines = []) => {
+  const baseEntries = uniqueNumbers(
+    lines
+      .filter((line) => Number(line.base_type ?? 202) === 202)
+      .map((line) => line.base_entry)
+  );
+
+  if (baseEntries.length === 0) {
+    return { lines, linkedOrders: [] };
+  }
+
+  const filter = baseEntries.map((entry) => `AbsoluteEntry eq ${entry}`).join(' or ');
+  const resp = await sapService.request({
+    method: 'GET',
+    url: `/ProductionOrders?$select=AbsoluteEntry,DocumentNumber,ItemNo,ProductDescription,PlannedQuantity,CompletedQuantity,ProductionOrderStatus,Warehouse,DueDate&$filter=${encodeURIComponent(filter)}&$top=${baseEntries.length}`,
+  });
+
+  const orderMap = new Map(
+    (resp.data?.value || []).map((order) => [
+      Number(order.AbsoluteEntry),
+      {
+        doc_entry: Number(order.AbsoluteEntry),
+        doc_num: order.DocumentNumber ?? '',
+        item_code: order.ItemNo || '',
+        item_name: order.ProductDescription || '',
+        planned_qty: order.PlannedQuantity ?? 0,
+        completed_qty: order.CompletedQuantity ?? 0,
+        status: order.ProductionOrderStatus || '',
+        warehouse: order.Warehouse || '',
+        due_date: formatDate(order.DueDate),
+      },
+    ])
+  );
+
+  const enrichedLines = lines.map((line) => {
+    const order = orderMap.get(Number(line.base_entry));
+    const fallbackOrderEntry = Number(line.base_entry ?? 0);
+    return {
+      ...line,
+      order_doc_entry: order?.doc_entry ?? (Number.isInteger(fallbackOrderEntry) && fallbackOrderEntry > 0 ? fallbackOrderEntry : null),
+      order_doc_num: order?.doc_num ?? line.order_doc_num ?? '',
+      order_item_code: order?.item_code ?? line.order_item_code ?? '',
+      order_item_name: order?.item_name ?? line.order_item_name ?? '',
+    };
+  });
+
+  return {
+    lines: enrichedLines,
+    linkedOrders: baseEntries.map((entry) => orderMap.get(entry)).filter(Boolean),
+  };
+};
+
 // ── Map a single InventoryGenExit document to our form shape ─────────────────
 const mapToForm = (doc) => ({
   doc_entry:      doc.DocEntry,
@@ -194,19 +249,33 @@ const getProductionOrderForIssue = async (docEntry) => {
 
 // ── List issues ───────────────────────────────────────────────────────────────
 const getIssueList = async ({ query = '', top = 50, skip = 0 } = {}) => {
-  // SAP B1 SL: filter by Comments only when query provided (cast() not supported)
-  const filterParts = [];
-  if (query) {
-    filterParts.push(`contains(Comments,'${escapeOData(query)}')`);
-  }
-  const filter = filterParts.length ? `&$filter=${filterParts.join(' and ')}` : '';
+  const trimmedQuery = String(query || '').trim();
+  const numericTop = Number(top);
+  const numericSkip = Number(skip);
+  const effectiveTop = Number.isFinite(numericTop) && numericTop > 0 ? numericTop : 50;
+  const effectiveSkip = Number.isFinite(numericSkip) && numericSkip >= 0 ? numericSkip : 0;
+  const requestTop = trimmedQuery ? Math.max(effectiveTop + effectiveSkip, 200) : effectiveTop;
 
   const resp = await sapService.request({
     method: 'GET',
-    url: `/InventoryGenExits?$select=DocEntry,DocNum,DocDate,Comments,DocumentLines${filter}&$top=${top}&$skip=${skip}&$orderby=DocEntry desc`,
+    url: `/InventoryGenExits?$select=DocEntry,DocNum,DocDate,Comments,DocumentLines&$top=${requestTop}&$skip=0&$orderby=DocEntry desc`,
   });
 
-  return { issues: (resp.data?.value || []).map(mapSummary) };
+  const summaries = (resp.data?.value || []).map(mapSummary);
+
+  if (!trimmedQuery) {
+    return { issues: summaries };
+  }
+
+  const queryLower = trimmedQuery.toLowerCase();
+  const filtered = summaries.filter((doc) =>
+    String(doc.doc_num || '').includes(trimmedQuery) ||
+    String(doc.remarks || '').toLowerCase().includes(queryLower)
+  );
+
+  return {
+    issues: filtered.slice(effectiveSkip, effectiveSkip + effectiveTop),
+  };
 };
 
 // ── Get single issue ──────────────────────────────────────────────────────────
@@ -219,7 +288,17 @@ const getIssueByDocEntry = async (docEntry) => {
     url: `/InventoryGenExits(${n})`,
   });
 
-  return { issue: mapToForm(resp.data || {}) };
+  const issue = mapToForm(resp.data || {});
+  const enriched = await enrichIssueLinesWithProductionOrders(issue.lines || []);
+
+  return {
+    issue: {
+      ...issue,
+      prod_order_entry: enriched.linkedOrders[0]?.doc_entry ?? issue.prod_order_entry ?? null,
+      linked_prod_orders: enriched.linkedOrders,
+      lines: enriched.lines,
+    },
+  };
 };
 
 // ── Create issue (posts to SAP) ───────────────────────────────────────────────
@@ -305,9 +384,6 @@ const lookupProductionOrders = async (query = '') => {
 
 // ── Validation ────────────────────────────────────────────────────────────────
 function _validate(body) {
-  if (!body.prod_order_entry) {
-    throw new Error('Production order is required.');
-  }
   if (!body.posting_date) {
     throw new Error('Posting date is required.');
   }
@@ -324,6 +400,14 @@ function _validate(body) {
     }
     if (!l.warehouse) {
       throw new Error(`Warehouse is required for item "${l.item_code}".`);
+    }
+    const baseEntry = Number(l.base_entry ?? body.prod_order_entry);
+    if (!Number.isInteger(baseEntry) || baseEntry <= 0) {
+      throw new Error(`Production order reference is required for item "${l.item_code}".`);
+    }
+    const baseLine = Number(l.base_line);
+    if (!Number.isInteger(baseLine) || baseLine < 0) {
+      throw new Error(`Production order row is required for item "${l.item_code}".`);
     }
     
     // Validate batch/serial numbers
@@ -353,15 +437,18 @@ function _buildPayload(body) {
     DocumentLines: (body.lines || [])
       .filter((l) => l.item_code && Number(l.issue_qty) > 0)
       .map((l, idx) => {
+        const baseEntry = Number(l.base_entry ?? body.prod_order_entry);
+        const baseLine = Number(l.base_line ?? idx);
+        const baseType = Number(l.base_type ?? 202) || 202;
         const line = {
           // SAP B1 Rule: ItemCode must be omitted when BaseType = 202 (Production Order)
           // SAP automatically populates ItemCode from the production order line
           Quantity:      Number(l.issue_qty),
           WarehouseCode: l.warehouse || undefined,
           // Link back to production order line
-          BaseEntry: Number(body.prod_order_entry),
-          BaseLine:  Number(l.base_line ?? idx),
-          BaseType:  202,  // 202 = Production Order
+          BaseEntry: baseEntry,
+          BaseLine:  baseLine,
+          BaseType:  baseType,
         };
         if (opt(l.uom))               line.UoMCode          = l.uom;
         if (opt(l.distribution_rule)) line.DistributionRule = l.distribution_rule;

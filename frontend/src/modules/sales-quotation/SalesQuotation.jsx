@@ -4,6 +4,7 @@ import '../../modules/item-master/styles/itemMaster.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FormSettingsPanel from '../../components/purchase-order/FormSettingsPanel';
 import HeaderUdfSidebar from '../../components/purchase-order/HeaderUdfSidebar';
+import { useMarketingDocumentUdfs } from '../../hooks/useMarketingDocumentUdfs';
 import ContentsTab from './components/ContentsTab';
 import LogisticsTab from './components/LogisticsTab';
 import AccountingTab from './components/AccountingTab';
@@ -142,6 +143,19 @@ function SalesOrder() {
   const [activeTab, setActiveTab] = useState('Contents');
   const [headerUdfs, setHeaderUdfs] = useState(() => createUdfState(HEADER_UDF_DEFINITIONS));
   const [formSettings, setFormSettings] = useState(() => readSavedFormSettings());
+  const {
+    headerFields: headerUdfFields,
+    rowFields: rowUdfFields,
+    visibleHeaderFields: visHdrUdfs,
+    createHeaderUdfState,
+    createRowUdfState,
+  } = useMarketingDocumentUdfs({
+    documentType: 'sales-quotation',
+    fallbackHeaderFields: [],
+    fallbackRowFields: [],
+    formSettings,
+    setFormSettings,
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [formSettingsOpen, setFormSettingsOpen] = useState(false);
   const [refData, setRefData] = useState({
@@ -363,12 +377,12 @@ function SalesOrder() {
                   ...createLine(), 
                   ...l, 
                   hsnCode: hsnCode,
-                  udf: { ...createUdfState(ROW_UDF_DEFINITIONS), ...(l.udf || {}) } 
+                  udf: createRowUdfState(l.udf || {})
                 };
               })
             : [createLine()]
         );
-        setHeaderUdfs({ ...createUdfState(HEADER_UDF_DEFINITIONS), ...(so.header_udfs || {}) });
+        setHeaderUdfs(createHeaderUdfState(so.header_udfs || {}));
         
         if (so.header?.customerCode) {
           loadVendorDetails(so.header.customerCode);
@@ -1667,7 +1681,7 @@ function SalesOrder() {
       const r = currentDocEntry ? await updateSalesQuotation(currentDocEntry, payload) : await submitSalesQuotation(payload);
       const dn = r.data.doc_num ? ` Doc No: ${r.data.doc_num}.` : '';
       setCurrentDocEntry(null); setHeader(INIT_HEADER); setLines([createLine()]);
-      setHeaderUdfs(createUdfState(HEADER_UDF_DEFINITIONS)); setActiveTab('Contents');
+      setHeaderUdfs(createHeaderUdfState()); setActiveTab('Contents');
       setRefData(p => ({ ...p, contacts: [], pay_to_addresses: [] }));
       setValErrors({ header: {}, lines: {}, form: '' });
       
@@ -1687,18 +1701,17 @@ function SalesOrder() {
 
   const resetForm = () => {
     setCurrentDocEntry(null); setHeader(INIT_HEADER); setLines([createLine()]);
-    setHeaderUdfs(createUdfState(HEADER_UDF_DEFINITIONS)); setActiveTab('Contents');
+    setHeaderUdfs(createHeaderUdfState()); setActiveTab('Contents');
     setValErrors({ header: {}, lines: {}, form: '' });
     setPageState(p => ({ ...p, error: '', success: '' }));
   };
 
-  const visHdrUdfs = HEADER_UDF_DEFINITIONS.filter(f => formSettings.headerUdfs?.[f.key]?.visible !== false);
 
   // Continue in next part with render...
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <form className="so-page" onSubmit={handleSubmit}>
+    <form className={`so-page${sidebarOpen ? ' so-page--sidebar-open' : ''}`} onSubmit={handleSubmit}>
 
       {/* toolbar */}
       <div className="so-toolbar">
@@ -1729,7 +1742,7 @@ function SalesOrder() {
         >
           Copy To
         </button>
-        <button type="button" className="so-btn" onClick={() => navigate('/sales-order/find')}>Find</button>
+        <button type="button" className="so-btn" onClick={() => navigate('/sales-quotation/find')}>Find</button>
         <button type="button" className="so-btn" onClick={resetForm}>New</button>
       </div>
 
@@ -1746,10 +1759,9 @@ function SalesOrder() {
         </div>
       )}
 
-      <fieldset disabled={!isDocumentEditable} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-      <div style={{ padding: '0 12px' }}>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ flex: sidebarOpen ? '0 0 calc(75% - 6px)' : '1' }}>
+      <fieldset className="so-fieldset" disabled={!isDocumentEditable} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+        <div className={`so-layout${sidebarOpen ? ' is-sidebar-open' : ''}`}>
+          <div className="so-layout__main">
 
             {/* ══ HEADER CARD ══════════════════════════════════════════════ */}
             <div className="so-header-card">
@@ -2212,15 +2224,14 @@ function SalesOrder() {
           </div>{/* end main col */}
 
           <HeaderUdfSidebar
+            className="so-layout__sidebar"
             isOpen={sidebarOpen}
             fields={visHdrUdfs}
             formSettings={formSettings}
             values={headerUdfs}
             onFieldChange={handleHeaderUdfChange}
-            style={{ flex: sidebarOpen ? '0 0 calc(25% - 6px)' : '0' }}
           />
         </div>
-      </div>
 
       </fieldset>
 
@@ -2229,8 +2240,8 @@ function SalesOrder() {
         isOpen={formSettingsOpen}
         onClose={() => setFormSettingsOpen(false)}
         matrixFields={[]}
-        headerUdfFields={HEADER_UDF_DEFINITIONS}
-        rowUdfFields={ROW_UDF_DEFINITIONS}
+        headerUdfFields={headerUdfFields}
+        rowUdfFields={rowUdfFields}
         formSettings={formSettings}
         onSettingChange={updateFormSetting}
       />

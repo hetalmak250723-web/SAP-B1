@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import AnalysisChartsPanel from "./AnalysisChartsPanel";
+import SapWindowControls from "./SapWindowControls";
 
 const formatNumber = (value) =>
   new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value || 0));
@@ -20,6 +21,8 @@ export default function SalesAnalysisResultGrid({
   exportLabel = "Export",
   pdfExportLabel = "PDF",
   onOk,
+  windowFrame,
+  onClose,
 }) {
   const [showCharts, setShowCharts] = useState(false);
   const codeLabel = tab === "customers" ? `${customerLabel} Code` : tab === "items" ? "Item Code" : `${salesEmployeeLabel} Code`;
@@ -30,9 +33,13 @@ export default function SalesAnalysisResultGrid({
   const resolvedOpenAmountLabel = openAmountLabel || `Total Open ${result.currencyCode}`;
 
   return (
-    <div className="sar-window">
-      <div className="sar-window__titlebar">
+    <div
+      className={`sar-window${windowFrame?.isMinimized ? " is-minimized" : ""}${windowFrame?.isMaximized ? " is-maximized" : ""}`}
+      {...(windowFrame?.windowProps || {})}
+    >
+      <div className="sar-window__titlebar" {...(windowFrame?.titleBarProps || {})}>
         <span>{result.title}</span>
+        <SapWindowControls windowFrame={windowFrame} onClose={onClose} />
       </div>
       <div className="sar-window__underline" />
 

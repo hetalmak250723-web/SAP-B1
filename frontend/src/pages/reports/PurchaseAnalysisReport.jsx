@@ -8,6 +8,8 @@ import SalesAnalysisCriteria from "../../components/reports/SalesAnalysisCriteri
 import SalesAnalysisPropertiesModal from "../../components/reports/SalesAnalysisPropertiesModal";
 import SalesAnalysisResultGrid from "../../components/reports/SalesAnalysisResultGrid";
 import SalesAnalysisDetailGrid from "../../components/reports/SalesAnalysisDetailGrid";
+import useFloatingWindow from "../../components/reports/useFloatingWindow";
+import { useSapWindowTaskbarActions } from "../../components/SapWindowTaskbarContext";
 import { exportPurchaseDetailPdf, exportPurchaseSummaryPdf } from "../../utils/analysisPdf";
 import {
   fetchPurchaseAnalysisItemGroups,
@@ -105,6 +107,7 @@ const downloadCsv = (filename, rows) => {
 
 export default function PurchaseAnalysisReport() {
   const navigate = useNavigate();
+  const { closeActiveAndRestorePrevious } = useSapWindowTaskbarActions();
   const [criteria, setCriteria] = useState(createInitialCriteria);
   const [customerGroupOptions, setCustomerGroupOptions] = useState([{ code: "All", name: "All" }]);
   const [itemGroupOptions, setItemGroupOptions] = useState([{ code: "All", name: "All" }]);
@@ -116,6 +119,17 @@ export default function PurchaseAnalysisReport() {
   const [detailResult, setDetailResult] = useState(null);
   const [lookupState, setLookupState] = useState({ open: false, type: "vendors", rangeKey: "from" });
   const [propertiesModal, setPropertiesModal] = useState({ open: false, type: "customer" });
+  const reportWindow = useFloatingWindow({
+    isOpen: true,
+    defaultTop: 18,
+    taskId: "purchase-analysis-report",
+    taskTitle: detailResult?.reportTitle || summaryResult?.reportTitle || "Purchase Analysis - Selection Criteria",
+    taskPath: "/reports/purchasing/analysis",
+  });
+  const handleCloseWindow = () => {
+    if (closeActiveAndRestorePrevious()) return;
+    navigate("/dashboard");
+  };
 
   useEffect(() => {
     Promise.all([
@@ -270,6 +284,8 @@ export default function PurchaseAnalysisReport() {
           onExport={() => downloadCsv("purchase-analysis-detail.csv", detailResult.rows)}
           onExportPdf={() => exportPurchaseDetailPdf({ result: detailResult, criteria })}
           exportLabel="Excel"
+          windowFrame={reportWindow}
+          onClose={handleCloseWindow}
         />
       );
     }
@@ -308,6 +324,8 @@ export default function PurchaseAnalysisReport() {
             })
           }
           exportLabel="Excel"
+          windowFrame={reportWindow}
+          onClose={handleCloseWindow}
         />
       );
     }
@@ -354,6 +372,8 @@ export default function PurchaseAnalysisReport() {
           setMessage("");
         }}
         loading={loading}
+        windowFrame={reportWindow}
+        onClose={handleCloseWindow}
       />
     );
   };

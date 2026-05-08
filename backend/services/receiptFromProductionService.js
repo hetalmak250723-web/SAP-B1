@@ -432,11 +432,7 @@ function _validate(body) {
       throw new Error(`Item "${line.item_code}" has bin allocations, but warehouse "${line.warehouse}" is not bin-enabled.`);
     }
 
-    if (line.enable_bin_locations) {
-      if (binAllocations.length === 0) {
-        throw new Error(`Bin allocations are required for item "${line.item_code}" in warehouse "${line.warehouse}".`);
-      }
-
+    if (line.enable_bin_locations && binAllocations.length > 0) {
       const binTotal = binAllocations.reduce((sum, row) => sum + toQty(row.quantity), 0);
       if (Math.abs(binTotal - lineQty) > EPSILON) {
         throw new Error(`Item "${line.item_code}" bin quantities (${binTotal}) must equal receipt quantity (${lineQty}).`);
@@ -454,10 +450,13 @@ function _validate(body) {
 function _buildPayload(body) {
   const payload = {
     DocDate: body.posting_date,
-    TaxDate: body.document_date || body.posting_date,
     Comments: body.remarks || '',
     JournalMemo: body.journal_remark || '',
   };
+
+  // SAP B1 rule: when the inventory receipt is referenced to a production order
+  // (OIGN lines with BaseType = 202), TaxDate must be omitted.
+  // SAP derives it automatically from the linked production document context.
 
   if (opt(body.series)) payload.Series = Number(body.series);
   if (opt(body.ref_2)) payload.Reference2 = body.ref_2;

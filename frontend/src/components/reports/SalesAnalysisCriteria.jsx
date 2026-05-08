@@ -2,6 +2,7 @@ import React from "react";
 import SalesAnalysisCustomerTab from "./SalesAnalysisCustomerTab";
 import SalesAnalysisItemTab from "./SalesAnalysisItemTab";
 import SalesAnalysisSalesEmployeeTab from "./SalesAnalysisSalesEmployeeTab";
+import SapWindowControls from "./SapWindowControls";
 
 const reportPeriodOptions = [
   { value: "annual", label: "Annual Report" },
@@ -78,6 +79,8 @@ export default function SalesAnalysisCriteria({
   onSubmit,
   onCancel,
   loading,
+  windowFrame,
+  onClose,
 }) {
   const compactCriteriaLayout = criteria.tab !== "salesEmployees";
 
@@ -122,9 +125,13 @@ export default function SalesAnalysisCriteria({
   };
 
   return (
-    <div className="sar-window">
-      <div className="sar-window__titlebar">
+    <div
+      className={`sar-window${windowFrame?.isMinimized ? " is-minimized" : ""}${windowFrame?.isMaximized ? " is-maximized" : ""}`}
+      {...(windowFrame?.windowProps || {})}
+    >
+      <div className="sar-window__titlebar" {...(windowFrame?.titleBarProps || {})}>
         <span>{title}</span>
+        <SapWindowControls windowFrame={windowFrame} onClose={onClose} />
       </div>
       <div className="sar-window__underline" />
 
