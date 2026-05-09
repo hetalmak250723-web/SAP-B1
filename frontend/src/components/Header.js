@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { flattenMenuTree, normalizePath } from '../auth/routeUtils';
 
-const STATIC_SEARCH_ITEMS = [
-  {
-    menuId: 'report-layout-manager',
-    menuName: 'Report Layout Manager',
-    menuPath: '/report-layout-manager',
-  },
-];
+const getDisplayMenuName = (menuName) => {
+  const normalized = String(menuName || '').trim().toLowerCase();
+  if (normalized === 'report studio') {
+    return 'Report Layout Manager';
+  }
+  return menuName;
+};
 
 const Header = () => {
   const navigate = useNavigate();
@@ -19,18 +19,14 @@ const Header = () => {
 
   const flattenedMenus = flattenMenuTree(menus)
     .filter((menu) => menu?.menuPath)
+    .filter((menu) => String(menu?.menuName || '').trim().toLowerCase() !== 'report layout manager')
     .map((menu) => ({
       menuId: menu.menuId,
-      menuName: menu.menuName,
+      menuName: getDisplayMenuName(menu.menuName),
       menuPath: normalizePath(menu.menuPath),
     }));
 
   const searchItems = [...flattenedMenus];
-  STATIC_SEARCH_ITEMS.forEach((item) => {
-    if (!searchItems.some((entry) => normalizePath(entry.menuPath) === normalizePath(item.menuPath))) {
-      searchItems.push(item);
-    }
-  });
 
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const searchResults = normalizedSearch

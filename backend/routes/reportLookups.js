@@ -10,6 +10,7 @@ const {
   lookupItemProperties,
 } = require("../controllers/itemController");
 const purchaseController = require("../controllers/reports/purchaseAnalysis.controller");
+const purchaseRequestReportController = require("../controllers/reports/purchaseRequestReport.controller");
 
 const router = express.Router();
 
@@ -44,5 +45,15 @@ router.get("/purchase-vendor-groups", purchaseController.lookupVendorGroups);
 router.get("/purchase-item-groups", purchaseController.lookupItemGroups);
 router.get("/purchase-vendor-properties", purchaseController.lookupVendorProperties);
 router.get("/purchase-item-properties", purchaseController.lookupItemProperties);
+
+router.get("/purchase-request-report/items", purchaseRequestReportController.lookupItems);
+router.get("/purchase-request-report/vendors", purchaseRequestReportController.lookupVendors);
+router.get("/purchase-request-report/item-groups", purchaseRequestReportController.lookupItemGroups);
+router.get("/purchase-request-report/item-properties", purchaseRequestReportController.lookupItemProperties);
+router.get("/purchase-request-report/branches", purchaseRequestReportController.lookupBranches);
+router.get("/purchase-request-report/departments", purchaseRequestReportController.lookupDepartments);
+router.get("/purchase-request-report/projects", purchaseRequestReportController.lookupProjects);
+router.get("/purchase-request-report/users", purchaseRequestReportController.lookupUsers);
+router.get("/purchase-request-report/employees", purchaseRequestReportController.lookupEmployees);
 
 module.exports = router;

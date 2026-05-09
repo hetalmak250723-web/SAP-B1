@@ -7,6 +7,7 @@ import PropertiesSelectionModal from '../components/reports/PropertiesSelectionM
 import SalesEmployeeLookupModal from '../components/reports/SalesEmployeeLookupModal';
 import SalesAnalysisDetailModal from '../components/reports/SalesAnalysisDetailModal';
 import useFloatingWindow from '../components/reports/useFloatingWindow';
+import { useSapWindowTaskbarActions } from '../components/SapWindowTaskbarContext';
 import { fetchBPGroups } from '../api/businessPartnerApi';
 import { fetchItemGroups, fetchItemProperties } from '../api/itemApi';
 import {
@@ -218,6 +219,7 @@ const createInitialState = () => ({
 
 function SalesAnalysisReportPage() {
   const navigate = useNavigate();
+  const { closeActiveAndRestorePrevious } = useSapWindowTaskbarActions();
   const { company } = useAuth();
   const [formState, setFormState] = useState(createInitialState);
   const [statusMessage, setStatusMessage] = useState('');
@@ -240,8 +242,20 @@ function SalesAnalysisReportPage() {
   const [itemProperties, setItemProperties] = useState(DEFAULT_ITEM_PROPERTIES);
   const [customerGroups, setCustomerGroups] = useState([{ code: '', name: 'All' }]);
   const [itemGroups, setItemGroups] = useState([{ code: '', name: 'All' }]);
-  const criteriaWindow = useFloatingWindow({ isOpen: !reportResult, defaultTop: 22 });
-  const reportWindow = useFloatingWindow({ isOpen: Boolean(reportResult), defaultTop: 12 });
+  const criteriaWindow = useFloatingWindow({
+    isOpen: !reportResult,
+    defaultTop: 22,
+    taskId: 'sales-analysis-criteria',
+    taskTitle: 'Sales Analysis Report - Selection Criteria',
+    taskPath: '/reports/sales/analysis',
+  });
+  const reportWindow = useFloatingWindow({
+    isOpen: Boolean(reportResult),
+    defaultTop: 12,
+    taskId: 'sales-analysis-report',
+    taskTitle: reportResult?.reportTitle || 'Sales Analysis Report',
+    taskPath: '/reports/sales/analysis',
+  });
 
   const currentSelectionLabel =
     formState.activeTab === 'customers'
@@ -420,6 +434,15 @@ function SalesAnalysisReportPage() {
     setReportResult(null);
     setDetailReport(null);
     setStatusMessage('');
+  };
+
+  const handleCloseWindow = () => {
+    if (closeActiveAndRestorePrevious()) return;
+    if (reportResult) {
+      handleBackToCriteria();
+      return;
+    }
+    navigate('/dashboard');
   };
 
   const buildSummaryExportConfig = () => {
@@ -1218,7 +1241,7 @@ function SalesAnalysisReportPage() {
       return (
         <div className="sales-analysis-report-view">
           <div
-            className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}`}
+            className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}${reportWindow.isMaximized ? ' is-maximized' : ''}`}
             {...reportWindow.windowProps}
           >
             <div className="sales-analysis-window__titlebar" {...reportWindow.titleBarProps}>
@@ -1233,8 +1256,8 @@ function SalesAnalysisReportPage() {
                 >
                   {reportWindow.isMinimized ? '□' : '-'}
                 </button>
-                <button type="button" aria-label="Restore" onClick={reportWindow.restoreWindow}>□</button>
-                <button type="button" aria-label="Close" onClick={handleBackToCriteria}>x</button>
+                <button type="button" aria-label={reportWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={reportWindow.toggleMaximize}>[]</button>
+                <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
               </div>
             </div>
 
@@ -1301,7 +1324,7 @@ function SalesAnalysisReportPage() {
       return (
         <div className="sales-analysis-report-view">
           <div
-            className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}`}
+            className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}${reportWindow.isMaximized ? ' is-maximized' : ''}`}
             {...reportWindow.windowProps}
           >
             <div className="sales-analysis-window__titlebar" {...reportWindow.titleBarProps}>
@@ -1316,8 +1339,8 @@ function SalesAnalysisReportPage() {
                 >
                   {reportWindow.isMinimized ? '□' : '-'}
                 </button>
-                <button type="button" aria-label="Restore" onClick={reportWindow.restoreWindow}>□</button>
-                <button type="button" aria-label="Close" onClick={handleBackToCriteria}>x</button>
+                <button type="button" aria-label={reportWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={reportWindow.toggleMaximize}>[]</button>
+                <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
               </div>
             </div>
 
@@ -1388,7 +1411,7 @@ function SalesAnalysisReportPage() {
       return (
         <div className="sales-analysis-report-view">
           <div
-            className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}`}
+            className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}${reportWindow.isMaximized ? ' is-maximized' : ''}`}
             {...reportWindow.windowProps}
           >
             <div className="sales-analysis-window__titlebar" {...reportWindow.titleBarProps}>
@@ -1403,8 +1426,8 @@ function SalesAnalysisReportPage() {
                 >
                   {reportWindow.isMinimized ? '□' : '-'}
                 </button>
-                <button type="button" aria-label="Restore" onClick={reportWindow.restoreWindow}>□</button>
-                <button type="button" aria-label="Close" onClick={handleBackToCriteria}>x</button>
+                <button type="button" aria-label={reportWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={reportWindow.toggleMaximize}>[]</button>
+                <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
               </div>
             </div>
 
@@ -1512,7 +1535,7 @@ function SalesAnalysisReportPage() {
     return (
       <div className="sales-analysis-report-view">
         <div
-          className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}`}
+          className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}${reportWindow.isMaximized ? ' is-maximized' : ''}`}
           {...reportWindow.windowProps}
         >
           <div className="sales-analysis-window__titlebar" {...reportWindow.titleBarProps}>
@@ -1527,8 +1550,8 @@ function SalesAnalysisReportPage() {
               >
                 {reportWindow.isMinimized ? '□' : '-'}
               </button>
-              <button type="button" aria-label="Restore" onClick={reportWindow.restoreWindow}>□</button>
-              <button type="button" aria-label="Close" onClick={handleBackToCriteria}>x</button>
+              <button type="button" aria-label={reportWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={reportWindow.toggleMaximize}>[]</button>
+              <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
             </div>
           </div>
 
@@ -1659,7 +1682,7 @@ function SalesAnalysisReportPage() {
   return (
     <div className="sales-analysis-page">
       <div
-        className={`sales-analysis-window${criteriaWindow.isMinimized ? ' is-minimized' : ''}`}
+        className={`sales-analysis-window${criteriaWindow.isMinimized ? ' is-minimized' : ''}${criteriaWindow.isMaximized ? ' is-maximized' : ''}`}
         {...criteriaWindow.windowProps}
       >
         <div className="sales-analysis-window__titlebar" {...criteriaWindow.titleBarProps}>
@@ -1672,8 +1695,8 @@ function SalesAnalysisReportPage() {
             >
               {criteriaWindow.isMinimized ? '□' : '-'}
             </button>
-            <button type="button" aria-label="Restore" onClick={criteriaWindow.restoreWindow}>□</button>
-            <button type="button" aria-label="Close">x</button>
+            <button type="button" aria-label={criteriaWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={criteriaWindow.toggleMaximize}>[]</button>
+            <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
           </div>
         </div>
 
