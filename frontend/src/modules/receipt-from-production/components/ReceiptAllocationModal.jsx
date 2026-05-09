@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { lookupBinLocationsForReceipt } from "../../../api/receiptFromProductionApi";
+import apiClient from "../../../api/client";
 
 const toQty = (value) => {
   const num = Number(value);
@@ -26,10 +26,11 @@ export default function ReceiptAllocationModal({ line, readOnly, onSave, onClose
     setLoadingBins(true);
     setBinError("");
 
-    lookupBinLocationsForReceipt(line.warehouse)
+    apiClient
+      .get("/bin-locations", { params: { warehouse: line.warehouse } })
       .then((response) => {
         if (!active) return;
-        setBins(response?.value || []);
+        setBins(response.data?.value || []);
       })
       .catch((err) => {
         if (!active) return;
@@ -94,11 +95,14 @@ export default function ReceiptAllocationModal({ line, readOnly, onSave, onClose
     }
 
     if (line.enable_bin_locations) {
-      if (validBinRows.length > 0 && Math.abs(binTotal - requiredQty) > 0.000001) {
+      if (validBinRows.length === 0) {
+        return "Bin allocations are required.";
+      }
+      if (Math.abs(binTotal - requiredQty) > 0.000001) {
         return `Bin total must equal ${requiredQty}.`;
       }
 
-      if (validBinRows.length > 0 && (line.manage_batch || line.manage_serial) && linkedOptions.length > 1) {
+      if ((line.manage_batch || line.manage_serial) && linkedOptions.length > 1) {
         for (const row of validBinRows) {
           if (row.serial_batch_base_line === "" || row.serial_batch_base_line == null) {
             return "Choose a linked batch or serial row for each bin allocation.";

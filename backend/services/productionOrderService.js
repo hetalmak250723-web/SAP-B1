@@ -1,5 +1,4 @@
 const sapService = require('./sapService');
-const productionDbService = require('./productionDbService');
 
 const escapeOData = (v) => String(v || '').replace(/'/g, "''");
 const formatDate  = (v) => (v ? String(v).split('T')[0] : '');
@@ -52,124 +51,15 @@ const STATUS_MAP = {
 };
 
 const TYPE_MAP = {
-  bopotStandard:    'Standard',
-  bopotSpecial:     'Special',
-  bopotDisassembly: 'Disassembly',
-  bopotDisassemble: 'Disassembly',
+  bopotStandard:  'Standard',
+  bopotSpecial:   'Special',
+  bopotDisassemble: 'Disassemble',
 };
-
-const TYPE_OPTIONS = [
-  { value: 'bopotStandard', label: 'Standard' },
-  { value: 'bopotSpecial', label: 'Special' },
-  { value: 'bopotDisassembly', label: 'Disassembly' },
-];
 
 const PRIORITY_MAP = {
   boprLow:    'Low',
   boprNormal: 'Normal',
   boprHigh:   'High',
-};
-
-const ORIGIN_MAP = {
-  bopooManual: 'Manual',
-  bopooMRP: 'MRP',
-  bopooSalesOrder: 'Sales Order',
-  bopooProductionOrder: 'Production Order',
-};
-
-// Verified against the SAP Service Layer metadata in this environment on 2026-05-01.
-// Only fields in these sets should be written to /ProductionOrders payloads.
-const PROD_ORDER_HEADER_FIELDS = new Set([
-  'ItemNo',
-  'PlannedQuantity',
-  'DueDate',
-  'PostingDate',
-  'StartDate',
-  'Warehouse',
-  'Priority',
-  'CustomerCode',
-  'ProductionOrderStatus',
-  'ProductionOrderType',
-  'DistributionRule',
-  'Project',
-  'JournalRemarks',
-  'Remarks',
-  'Series',
-  'ProductionOrderLines',
-]);
-
-const PROD_ORDER_LINE_FIELDS = new Set([
-  'PlannedQuantity',
-  'ItemType',
-  'LineNumber',
-  'LineText',
-  'ItemNo',
-  'Warehouse',
-  'ProductionOrderIssueType',
-  'DistributionRule',
-  'Project',
-  'AdditionalQuantity',
-  'StageID',
-]);
-
-const assignIfDefined = (target, field, value, allowedFields) => {
-  if (value !== undefined && allowedFields.has(field)) {
-    target[field] = value;
-  }
-};
-
-const pickFirstDefined = (...values) =>
-  values.find((value) => value !== undefined && value !== null && value !== '');
-
-const normalizeProductionType = (value) =>
-  value === 'bopotDisassemble' ? 'bopotDisassembly' : value;
-
-const formatOrigin = (value) => ORIGIN_MAP[value] || value || '';
-
-const mergeProductionOrderData = (primary = {}, fallback = {}) => {
-  const mergedHeader = {};
-  const headerKeys = new Set([...Object.keys(fallback), ...Object.keys(primary)]);
-  for (const key of headerKeys) {
-    if (key === 'lines') continue;
-    mergedHeader[key] = pickFirstDefined(primary[key], fallback[key], '');
-  }
-
-  const primaryLinesByLineNum = new Map((primary.lines || []).map((line) => [Number(line.line_num ?? -1), line]));
-  const fallbackLinesByLineNum = new Map((fallback.lines || []).map((line) => [Number(line.line_num ?? -1), line]));
-  const mergedLineNums = Array.from(new Set([
-    ...primaryLinesByLineNum.keys(),
-    ...fallbackLinesByLineNum.keys(),
-  ])).sort((a, b) => a - b);
-
-  const lines = mergedLineNums
-    .map((lineNum) => {
-      const primaryLine = primaryLinesByLineNum.get(lineNum) || {};
-      const fallbackLine = fallbackLinesByLineNum.get(lineNum) || {};
-      const lineKeys = new Set([...Object.keys(fallbackLine), ...Object.keys(primaryLine)]);
-      const mergedLine = {};
-      for (const key of lineKeys) {
-        mergedLine[key] = pickFirstDefined(primaryLine[key], fallbackLine[key], '');
-      }
-      return Object.keys(mergedLine).length > 0 ? mergedLine : null;
-    })
-    .filter(Boolean);
-
-  return { ...mergedHeader, lines };
-};
-
-const enrichProductionOrderWithDbFallback = async (productionOrder) => {
-  const docEntry = Number(productionOrder?.doc_entry);
-  if (!Number.isInteger(docEntry) || docEntry <= 0) return productionOrder;
-
-  try {
-    const dbResult = await productionDbService.getProductionOrderByDocEntry(docEntry);
-    const dbOrder = dbResult?.production_order;
-    if (!dbOrder) return productionOrder;
-    return mergeProductionOrderData(productionOrder, dbOrder);
-  } catch (error) {
-    console.warn('[ProductionOrder] DB fallback failed:', error.message);
-    return productionOrder;
-  }
 };
 
 const mapSummary = (o) => ({
@@ -182,8 +72,8 @@ const mapSummary = (o) => ({
   due_date:     formatDate(o.DueDate),
   posting_date: formatDate(o.PostingDate),
   status:       STATUS_MAP[o.ProductionOrderStatus] || o.ProductionOrderStatus || '',
-  type:         TYPE_MAP[normalizeProductionType(o.ProductionOrderType)] || o.ProductionOrderType || '',
-  warehouse:    o.Warehouse || '',
+  type:         TYPE_MAP[o.ProductionOrderType]   || o.ProductionOrderType   || '',
+    warehouse:    o.Warehouse || '',
 });
 
 const mapToForm = (o) => {
@@ -201,20 +91,18 @@ const mapToForm = (o) => {
     due_date:     formatDate(o.DueDate),
     posting_date: formatDate(o.PostingDate),
     start_date:   formatDate(o.StartDate),
-    order_date:   formatDate(o.CreationDate || o.PostingDate),
+    order_date:   formatDate(o.CreationDate),
     status:       o.ProductionOrderStatus || 'boposPlanned',
-    type:         normalizeProductionType(o.ProductionOrderType) || 'bopotStandard',
+    type:         o.ProductionOrderType   || 'bopotStandard',
     warehouse:    o.Warehouse || '',
     priority:     o.Priority ?? 100,
     distribution_rule: o.DistributionRule || '',
     project:      o.Project || '',
-    journal_remark: o.JournalRemarks || o.JournalMemo || '',
+    journal_remark: o.JournalMemo || '',
     remarks:      o.Remarks || '',
     series:       o.Series != null ? String(o.Series) : '',
-    origin_num:   o.ProductionOrderOriginNumber != null ? String(o.ProductionOrderOriginNumber) : (o.OriginNum != null ? String(o.OriginNum) : ''),
-    origin:       formatOrigin(o.ProductionOrderOrigin || o.OriginNumber || ''),
-    linked_to:    o.ProductionOrderOriginEntry != null ? String(o.ProductionOrderOriginEntry) : '',
-    linked_order: o.ProductionOrderOriginNumber != null ? String(o.ProductionOrderOriginNumber) : '',
+    origin_num:   o.OriginNum != null ? String(o.OriginNum) : '',
+    origin:       o.OriginNumber != null ? String(o.OriginNumber) : '',
     branch:       o.BPL_IDAssignedToInvoice != null ? String(o.BPL_IDAssignedToInvoice) : (o.BPLId != null ? String(o.BPLId) : ''),
     branch_name:  o.BPLName || '',
     customer_code:o.CustomerCode || '',
@@ -274,7 +162,7 @@ const getReferenceData = async () => {
     branches,
     route_stages: routeStages,
     production_order_statuses: Object.entries(STATUS_MAP).map(([value, label]) => ({ value, label })),
-    production_order_types:    TYPE_OPTIONS,
+    production_order_types:    Object.entries(TYPE_MAP).map(([value, label]) => ({ value, label })),
     production_order_priorities: Object.entries(PRIORITY_MAP).map(([value, label]) => ({ value, label })),
     warnings,
   };
@@ -314,9 +202,7 @@ const getProductionOrderByDocEntry = async (docEntry) => {
     url: `/ProductionOrders(${n})` 
   });
   console.log('[ProductionOrder] SAP response received');
-  return {
-    production_order: await enrichProductionOrderWithDbFallback(mapToForm(resp.data || {})),
-  };
+  return { production_order: mapToForm(resp.data || {}) };
 };
 
 // ── BOM explosion ─────────────────────────────────────────────────────────────
@@ -327,10 +213,6 @@ const explodeBOM = async (itemCode, qty = 1) => {
   });
   const bom = resp.data;
   const factor = Number(qty) / (bom.Quantity || 1);
-  const resolvedHeaderWarehouse = await productionDbService.resolveProductionWarehouse(
-    bom.Warehouse,
-    (bom.ProductTreeLines || []).map((line) => line.Warehouse || '')
-  );
 
   const lines = (bom.ProductTreeLines || []).map((l, idx) => ({
     _id:           Date.now() + idx + Math.random(),
@@ -341,7 +223,7 @@ const explodeBOM = async (itemCode, qty = 1) => {
     planned_qty:   parseFloat(((l.Quantity ?? 1) * factor).toFixed(6)),
     issued_qty:    0,
     uom:           l.InventoryUOM || '',
-    warehouse:     l.Warehouse || resolvedHeaderWarehouse || '',
+    warehouse:     l.Warehouse || bom.Warehouse || '',
     issue_method:  l.IssueMethod || 'im_Manual',
     distribution_rule: l.DistributionRule || '',
     project:       l.Project || '',
@@ -355,7 +237,7 @@ const explodeBOM = async (itemCode, qty = 1) => {
     item_code:   bom.TreeCode,
     item_name:   bom.ProductDescription || '',
     bom_qty:     bom.Quantity,
-    warehouse:   resolvedHeaderWarehouse,
+    warehouse:   bom.Warehouse || '',
     lines,
   };
 };
@@ -414,32 +296,12 @@ const createProductionOrder = async (body) => {
     }
   }
 
-  const sanitizedWarehouse = await productionDbService.resolveProductionWarehouse(
-    body.warehouse,
-    (body.lines || []).map((line) => line.warehouse || '')
-  );
-  const sanitizedBody = {
-    ...body,
-    warehouse: sanitizedWarehouse,
-    lines: Array.isArray(body.lines)
-      ? await Promise.all(
-          body.lines.map(async (line) => ({
-            ...line,
-            warehouse: await productionDbService.resolveProductionWarehouse(
-              line.warehouse,
-              [sanitizedWarehouse]
-            ),
-          }))
-        )
-      : body.lines,
-  };
-
   // Remember the desired status
-  const desiredStatus = sanitizedBody.status;
+  const desiredStatus = body.status;
   console.log('[ProductionOrder] Desired status:', desiredStatus);
   
   // SAP B1 requires production orders to be created as Planned
-  const payload = _buildPayload(sanitizedBody, true); // Pass true to indicate creation
+  const payload = _buildPayload(body, true); // Pass true to indicate creation
   console.log('[ProductionOrder] Payload status:', payload.ProductionOrderStatus);
   
   const resp = await sapService.request({ method: 'POST', url: '/ProductionOrders', data: payload });
@@ -551,37 +413,14 @@ const updateProductionOrder = async (docEntry, body) => {
   const n = Number(docEntry);
   if (!Number.isInteger(n) || n <= 0) throw new Error('Invalid DocEntry.');
 
-  const sanitizedWarehouse = await productionDbService.resolveProductionWarehouse(
-    body.warehouse,
-    (body.lines || []).map((line) => line.warehouse || '')
-  );
-  const sanitizedBody = {
-    ...body,
-    warehouse: sanitizedWarehouse,
-    lines: Array.isArray(body.lines)
-      ? await Promise.all(
-          body.lines.map(async (line) => ({
-            ...line,
-            warehouse: await productionDbService.resolveProductionWarehouse(
-              line.warehouse,
-              [sanitizedWarehouse]
-            ),
-          }))
-        )
-      : body.lines,
-  };
-
-  const payload = _buildPayload(sanitizedBody, false); // Pass false to indicate update
+  const payload = _buildPayload(body, false); // Pass false to indicate update
   await sapService.request({ method: 'PATCH', url: `/ProductionOrders(${n})`, data: payload });
 
   const updated = await sapService.request({ 
     method: 'GET', 
     url: `/ProductionOrders(${n})` 
   });
-  return {
-    message: 'Production order updated.',
-    production_order: await enrichProductionOrderWithDbFallback(mapToForm(updated.data || {})),
-  };
+  return { message: 'Production order updated.', production_order: mapToForm(updated.data || {}) };
 };
 
 // ── Release ───────────────────────────────────────────────────────────────────
@@ -600,10 +439,7 @@ const releaseProductionOrder = async (docEntry) => {
     method: 'GET', 
     url: `/ProductionOrders(${n})` 
   });
-  return {
-    message: 'Production order released.',
-    production_order: await enrichProductionOrderWithDbFallback(mapToForm(updated.data || {})),
-  };
+  return { message: 'Production order released.', production_order: mapToForm(updated.data || {}) };
 };
 
 // ── Close ─────────────────────────────────────────────────────────────────────
@@ -622,10 +458,7 @@ const closeProductionOrder = async (docEntry) => {
     method: 'GET', 
     url: `/ProductionOrders(${n})` 
   });
-  return {
-    message: 'Production order closed.',
-    production_order: await enrichProductionOrderWithDbFallback(mapToForm(updated.data || {})),
-  };
+  return { message: 'Production order closed.', production_order: mapToForm(updated.data || {}) };
 };
 
 // ── Lookups ───────────────────────────────────────────────────────────────────
@@ -728,50 +561,42 @@ const lookupCustomers = async (query = '') => {
 function _buildPayload(body, isCreate = false) {
   const p = {};
 
-  if (opt(body.branch)) {
-    console.warn('[ProductionOrder] Ignoring branch in write payload because SAP metadata for ProductionOrder does not expose a writable branch field.');
-  }
-
-  assignIfDefined(p, 'ItemNo', opt(body.item_code) ? body.item_code : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'PlannedQuantity', opt(body.planned_qty) ? Number(body.planned_qty) : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'DueDate', opt(body.due_date) ? body.due_date : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'PostingDate', opt(body.posting_date) ? body.posting_date : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'StartDate', opt(body.start_date) ? body.start_date : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'Warehouse', opt(body.warehouse) ? body.warehouse : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'Priority', opt(body.priority) ? Number(body.priority) : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'CustomerCode', opt(body.customer_code) ? body.customer_code : undefined, PROD_ORDER_HEADER_FIELDS);
+  if (opt(body.item_code))    p.ItemNo                  = body.item_code;
+  if (opt(body.planned_qty))  p.PlannedQuantity          = Number(body.planned_qty);
+  if (opt(body.due_date))     p.DueDate                  = body.due_date;
+  if (opt(body.posting_date)) p.PostingDate              = body.posting_date;
+  if (opt(body.start_date))   p.StartDate                = body.start_date;
+  if (opt(body.warehouse))    p.Warehouse                = body.warehouse;
+  if (opt(body.priority))     p.Priority                 = Number(body.priority);
+  if (opt(body.branch))       p.BPL_IDAssignedToInvoice  = Number(body.branch);
+  if (opt(body.customer_code)) p.CustomerCode            = body.customer_code;
   
   // SAP B1 Rule: Production orders can only be created in Planned status
   // To release, you must create as Planned first, then call the Release action
   // Force status to Planned ONLY on creation, allow status updates during PATCH
   if (isCreate) {
-    assignIfDefined(p, 'ProductionOrderStatus', 'boposPlanned', PROD_ORDER_HEADER_FIELDS);
+    p.ProductionOrderStatus = 'boposPlanned';
   } else if (opt(body.status)) {
     // During update, allow status changes (Planned -> Released -> Closed)
-    assignIfDefined(p, 'ProductionOrderStatus', body.status, PROD_ORDER_HEADER_FIELDS);
+    p.ProductionOrderStatus = body.status;
   }
   
-  assignIfDefined(
-    p,
-    'ProductionOrderType',
-    opt(body.type) ? normalizeProductionType(body.type) : undefined,
-    PROD_ORDER_HEADER_FIELDS
-  );
-  assignIfDefined(p, 'DistributionRule', opt(body.distribution_rule) ? body.distribution_rule : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'Project', opt(body.project) ? body.project : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'JournalRemarks', opt(body.journal_remark) ? body.journal_remark : undefined, PROD_ORDER_HEADER_FIELDS);
-  assignIfDefined(p, 'Remarks', opt(body.remarks) ? body.remarks : undefined, PROD_ORDER_HEADER_FIELDS);
+  if (opt(body.type))         p.ProductionOrderType      = body.type;
+  if (opt(body.distribution_rule)) p.DistributionRule   = body.distribution_rule;
+  if (opt(body.project))      p.Project                  = body.project;
+  if (opt(body.journal_remark)) p.JournalMemo            = body.journal_remark;
+  if (opt(body.remarks))      p.Remarks                  = body.remarks;
   
   // Only include Series if explicitly provided and valid
   // SAP B1 will auto-assign series if not provided
   // Series must be a valid positive integer
   const seriesNum = Number(body.series);
   if (body.series && body.series !== '' && Number.isInteger(seriesNum) && seriesNum > 0) {
-    assignIfDefined(p, 'Series', seriesNum, PROD_ORDER_HEADER_FIELDS);
+    p.Series = seriesNum;
   }
 
   if (Array.isArray(body.lines) && body.lines.length > 0) {
-    const lines = body.lines
+    p.ProductionOrderLines = body.lines
       .filter((l) => (l.component_type === 'pit_Text' ? (l.line_text || l.item_name) : l.item_code))
       .map((l, idx) => {
         const line = {
@@ -784,21 +609,15 @@ function _buildPayload(body, isCreate = false) {
         } else if (opt(l.item_code)) {
           line.ItemNo = l.item_code;
         }
-        if (opt(l.warehouse))          line.Warehouse = l.warehouse;
+        if (opt(l.warehouse))          line.Warehouse          = l.warehouse;
         if (opt(l.issue_method))       line.ProductionOrderIssueType = l.issue_method;
-        if (opt(l.distribution_rule))  line.DistributionRule = l.distribution_rule;
-        if (opt(l.project))            line.Project = l.project;
+        if (opt(l.distribution_rule))  line.DistributionRule   = l.distribution_rule;
+        if (opt(l.project))            line.Project            = l.project;
         if (opt(l.additional_qty))     line.AdditionalQuantity = Number(l.additional_qty);
-        if (opt(l.stage_id))           line.StageID = Number(l.stage_id);
-
-        return Object.fromEntries(
-          Object.entries(line).filter(([field, value]) => value !== undefined && PROD_ORDER_LINE_FIELDS.has(field))
-        );
+        if (opt(l.stage_id))           line.StageID            = Number(l.stage_id);
+        // Note: StageID is not supported in ProductionOrderLines
+        return line;
       });
-
-    if (lines.length > 0) {
-      assignIfDefined(p, 'ProductionOrderLines', lines, PROD_ORDER_HEADER_FIELDS);
-    }
   }
 
   return p;

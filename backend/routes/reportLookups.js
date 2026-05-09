@@ -10,11 +10,7 @@ const {
   lookupItemProperties,
 } = require("../controllers/itemController");
 const purchaseController = require("../controllers/reports/purchaseAnalysis.controller");
-
-const purchaseQuotationComparisonController = require("../controllers/reports/purchaseQuotationComparison.controller");
-
 const purchaseRequestReportController = require("../controllers/reports/purchaseRequestReport.controller");
-
 
 const router = express.Router();
 
@@ -49,12 +45,6 @@ router.get("/purchase-vendor-groups", purchaseController.lookupVendorGroups);
 router.get("/purchase-item-groups", purchaseController.lookupItemGroups);
 router.get("/purchase-vendor-properties", purchaseController.lookupVendorProperties);
 router.get("/purchase-item-properties", purchaseController.lookupItemProperties);
-router.get("/purchase-quotation-comparison/items", purchaseQuotationComparisonController.lookupItems);
-router.get("/purchase-quotation-comparison/vendors", purchaseQuotationComparisonController.lookupVendors);
-router.get("/purchase-quotation-comparison/item-groups", purchaseQuotationComparisonController.lookupItemGroups);
-router.get("/purchase-quotation-comparison/vendor-groups", purchaseQuotationComparisonController.lookupVendorGroups);
-router.get("/purchase-quotation-comparison/item-properties", purchaseQuotationComparisonController.lookupItemProperties);
-router.get("/purchase-quotation-comparison/vendor-properties", purchaseQuotationComparisonController.lookupVendorProperties);
 
 router.get("/purchase-request-report/items", purchaseRequestReportController.lookupItems);
 router.get("/purchase-request-report/vendors", purchaseRequestReportController.lookupVendors);

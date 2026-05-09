@@ -4,7 +4,6 @@ const ctrl    = require('../controllers/receiptFromProductionController');
 
 // Lookups (before /:docEntry)
 router.get('/lookup/production-orders',   ctrl.lookupProductionOrders);
-router.get('/lookup/bin-locations',       ctrl.lookupBinLocations);
 router.get('/reference-data',             ctrl.getReferenceData);
 
 // Load production order for receipt form

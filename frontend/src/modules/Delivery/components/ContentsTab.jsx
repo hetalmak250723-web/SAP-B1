@@ -743,7 +743,7 @@ export default function ContentsTab({
   };
 
   return (
-    <div className="del-tab-panel" style={{ overflow: 'hidden', minWidth: 0, maxWidth: '100%' }}>
+    <div className="del-tab-panel" style={{ overflow: 'visible', minWidth: 0, maxWidth: 'none' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <div className="del-section-title">Document Lines</div>
         <button type="button" className="del-btn del-btn--primary" onClick={onAddLine}>
@@ -756,8 +756,8 @@ export default function ContentsTab({
         style={{ 
           width: '100%', 
           minWidth: 0, 
-          maxWidth: '100%',
-          overflow: 'hidden',
+          maxWidth: 'none',
+          overflow: 'visible',
           border: '1px solid #d7dde5'
         }}
       >

@@ -1,5 +1,4 @@
 const svc = require('../services/receiptFromProductionService');
-const productionDbService = require('../services/productionDbService');
 
 const errPayload = (error) => ({
   detail:
@@ -12,7 +11,7 @@ const errPayload = (error) => ({
 
 const getReferenceData = async (req, res) => {
   try {
-    res.json(await productionDbService.getReceiptReferenceData());
+    res.json(await svc.getReferenceData());
   } catch (e) {
     console.error('[ReceiptFromProd] refData:', e.response?.data || e.message);
     res.status(500).json(errPayload(e));
@@ -21,7 +20,7 @@ const getReferenceData = async (req, res) => {
 
 const getProductionOrderForReceipt = async (req, res) => {
   try {
-    res.json(await productionDbService.getProductionOrderForReceipt(req.params.docEntry));
+    res.json(await svc.getProductionOrderForReceipt(req.params.docEntry));
   } catch (e) {
     console.error('[ReceiptFromProd] getPO:', e.response?.data || e.message);
     res.status(e.response?.status || 400).json(errPayload(e));
@@ -30,7 +29,7 @@ const getProductionOrderForReceipt = async (req, res) => {
 
 const getReceiptList = async (req, res) => {
   try {
-    res.json(await productionDbService.getReceiptList(req.query));
+    res.json(await svc.getReceiptList(req.query));
   } catch (e) {
     console.error('[ReceiptFromProd] list:', e.response?.data || e.message);
     res.status(500).json(errPayload(e));
@@ -39,7 +38,7 @@ const getReceiptList = async (req, res) => {
 
 const getReceiptByDocEntry = async (req, res) => {
   try {
-    res.json(await productionDbService.getReceiptByDocEntry(req.params.docEntry));
+    res.json(await svc.getReceiptByDocEntry(req.params.docEntry));
   } catch (e) {
     console.error('[ReceiptFromProd] get:', e.response?.data || e.message);
     res.status(e.response?.status || 500).json(errPayload(e));
@@ -58,26 +57,10 @@ const createReceipt = async (req, res) => {
 
 const lookupProductionOrders = async (req, res) => {
   try {
-    const data = await productionDbService.lookupOpenProductionOrders(req.query.query || '', true);
+    const data = await svc.lookupProductionOrders(req.query.query || '');
     res.json(data);
   } catch (e) {
     console.error('[ReceiptFromProd] lookupPO error:', e.response?.data || e.message);
-    res.status(500).json(errPayload(e));
-  }
-};
-
-const lookupBinLocations = async (req, res) => {
-  try {
-    const warehouse = String(req.query.warehouse || '').trim();
-
-    if (!warehouse) {
-      return res.status(400).json({ detail: 'Warehouse is required.' });
-    }
-
-    const data = await productionDbService.lookupBinLocations(warehouse);
-    res.json(data);
-  } catch (e) {
-    console.error('[ReceiptFromProd] lookup bins error:', e.response?.data || e.message);
     res.status(500).json(errPayload(e));
   }
 };
@@ -89,5 +72,4 @@ module.exports = {
   getReceiptByDocEntry,
   createReceipt,
   lookupProductionOrders,
-  lookupBinLocations,
 };

@@ -4,11 +4,11 @@
   font-size: 13px;
   color: #1a1a1a;
   background: #f0f2f5;
-  min-height: 100%;
+  min-height: 100vh;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-x: auto !important;
+  overflow-y: auto;
   width: 100%;
-  max-width: 100%;
 }
 
 .del-page fieldset {
@@ -28,7 +28,6 @@
   background: #e8edf2;
   border-bottom: 1px solid #c8d0da;
   flex-wrap: wrap;
-  min-width: 0;
 }
 
 .del-toolbar__title {
@@ -37,9 +36,6 @@
   color: #003366;
   margin-right: auto;
   min-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .del-btn {
@@ -216,8 +212,6 @@
   border-bottom: 2px solid #0070c0;
   display: flex;
   gap: 2px;
-  overflow-x: auto;
-  overflow-y: hidden;
 }
 
 .del-tab {
@@ -251,8 +245,8 @@
   padding: 10px;
   min-height: 260px;
   min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
+  max-width: none;
+  overflow: visible;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -545,45 +539,15 @@
 
 /* ── Force horizontal scroll for Contents tab ── */
 .del-grid-wrap--contents {
-  max-width: 100%;
-  overflow: hidden !important;
+  overflow-x: auto !important;
 }
 
 .del-grid-wrap__scroller--contents {
   overflow-x: auto !important;
   overflow-y: auto !important;
-  max-width: 100%;
-  scrollbar-gutter: stable;
 }
 
 /* Ensure table can expand beyond container */
 .del-grid--contents {
-  min-width: 2200px !important;
-}
-
-@media (max-width: 1100px) {
-  .del-header-card {
-    margin-inline: 8px;
-    padding: 8px;
-  }
-
-  .del-field {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .del-field__label {
-    flex: none;
-    width: 100%;
-    text-align: left;
-  }
-
-  .del-toolbar {
-    align-items: flex-start;
-  }
-
-  .del-btn {
-    padding-inline: 10px;
-  }
+  min-width: 3900px !important;
 }

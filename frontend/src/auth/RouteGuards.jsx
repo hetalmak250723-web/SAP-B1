@@ -38,7 +38,7 @@ export const RequirePendingSelection = ({ children }) => {
 };
 
 export const RequireAuth = () => {
-  const { isAuthenticated, hasPendingSelection, isBootstrapping, menuPaths, roleName } = useAuth();
+  const { isAuthenticated, hasPendingSelection, isBootstrapping, menuPaths } = useAuth();
   const location = useLocation();
 
   if (isBootstrapping) {
@@ -53,7 +53,7 @@ export const RequireAuth = () => {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  if (!isPathAllowed(menuPaths, location.pathname, roleName)) {
+  if (!isPathAllowed(menuPaths, location.pathname)) {
     return <Navigate to={getDefaultRoute(menuPaths)} replace />;
   }
 
