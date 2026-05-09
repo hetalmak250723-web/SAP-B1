@@ -16,14 +16,8 @@ export const deleteBOM = (treeCode) =>
   apiClient.delete(`/bom/${encodeURIComponent(treeCode)}`).then((r) => r.data);
 
 // Lookups
-export const fetchBOMItems             = (query = "", top = 1000, options = {}) =>
-  apiClient.get("/bom/lookup/items", {
-    params: {
-      query,
-      top,
-      ...(options.headerLookup != null ? { headerLookup: options.headerLookup } : {}),
-    },
-  }).then((r) => r.data);
+export const fetchBOMItems             = (query = "") =>
+  apiClient.get("/bom/lookup/items", { params: { query } }).then((r) => r.data);
 
 export const fetchBOMList              = (query = "") =>
   apiClient.get("/bom", { params: { query, top: 100 } }).then((r) => r.data);
@@ -45,6 +39,3 @@ export const fetchBOMGLAccounts        = (query = "") =>
 
 export const getItemDetails = (itemCode) =>
   apiClient.get(`/bom/lookup/item-details/${encodeURIComponent(itemCode)}`).then((r) => r.data);
-
-export const getItemPrice = (itemCode, priceList) =>
-  apiClient.get(`/bom/lookup/item-price/${encodeURIComponent(itemCode)}?priceList=${priceList}`).then((r) => r.data);

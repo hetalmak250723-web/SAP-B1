@@ -1,10 +1,7 @@
 .app-shell {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  height: 100vh;
   min-height: 100vh;
-  max-width: 100vw;
-  overflow: hidden;
   background:
     radial-gradient(circle at top right, rgba(246, 183, 62, 0.18), transparent 22%),
     linear-gradient(180deg, #f6f8fb 0%, #edf2f7 48%, #e6edf4 100%);
@@ -14,71 +11,12 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .app-shell__content {
   flex: 1;
   min-width: 0;
-  min-height: 0;
   padding: 18px;
-  overflow: auto;
-  box-sizing: border-box;
-}
-
-.sap-window-taskbar {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 38px;
-  padding: 5px 10px;
-  border-top: 1px solid #8e9baa;
-  background: linear-gradient(180deg, #d9e0e8 0%, #bec8d3 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  overflow-x: auto;
-}
-
-.sap-window-taskbar__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  width: 220px;
-  max-width: 32vw;
-  height: 28px;
-  padding: 0 9px;
-  border: 1px solid #7f8d9c;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #f7f9fb 0%, #d9e1ea 100%);
-  color: #183650;
-  box-shadow:
-    inset 1px 1px 0 rgba(255, 255, 255, 0.8),
-    inset -1px -1px 0 rgba(111, 123, 136, 0.22);
-  cursor: pointer;
-  font-size: 12px;
-  text-align: left;
-}
-
-.sap-window-taskbar__item:hover {
-  background: linear-gradient(180deg, #fff8dd 0%, #f0c75f 100%);
-  border-color: #a67c13;
-}
-
-.sap-window-taskbar__icon {
-  width: 12px;
-  height: 12px;
-  flex: 0 0 12px;
-  border: 1px solid #6d7d8d;
-  background: linear-gradient(180deg, #ffffff 0%, #c9d4df 100%);
-  box-shadow: inset 0 -3px 0 #f0b400;
-}
-
-.sap-window-taskbar__title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .sidebar-shell {

@@ -98,36 +98,11 @@
   min-height: 0;
 }
 
-.bom-grid-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 12px 0;
-}
-
-.bom-section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #003366;
-}
-
-.bom-add-line-btn {
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  border: 1px solid #0d5ea8;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #0d78d2 0%, #0a5fa8 100%);
-  color: #fff;
-  cursor: pointer;
-}
-
-.bom-add-line-btn:hover {
-  background: linear-gradient(180deg, #0f84e6 0%, #0b69ba 100%);
-}
-
 .bom-lines-layout {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
   flex: 1;
   min-height: 0;
   padding: 12px;
@@ -217,10 +192,6 @@
   width: 120px;
 }
 
-.bom-col--delete {
-  width: 44px;
-}
-
 .bom-th {
   position: sticky;
   top: 0;
@@ -293,10 +264,6 @@
   color: #555;
 }
 
-.bom-grid__cell--action {
-  text-align: center;
-}
-
 .bom-grid__cell--total {
   font-weight: 700;
   color: #003366;
@@ -355,35 +322,54 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
-.bom-cell-lookup .im-lookup-btn {
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
+.bom-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: stretch;
+  padding: 12px 0 0 12px;
+  border-left: 1px solid #e0e6ed;
+  background: linear-gradient(180deg, #fbfcfd 0%, #f4f7fa 100%);
+  z-index: 4;
+}
+
+.bom-row-btn {
+  width: 32px;
+  height: 32px;
   padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
-  border-radius: 2px;
+  font-size: 18px;
+  font-weight: 700;
   line-height: 1;
-}
-
-.bom-delete-line-btn {
-  padding: 1px 7px;
-  font-size: 12px;
-  border: 1px solid #d48e8e;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #fff 0%, #f5dede 100%);
-  color: #c00;
+  border: 1px solid #a0aab4;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fff 0%, #e8ecf0 100%);
+  color: #333;
   cursor: pointer;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.bom-delete-line-btn:hover {
-  background: #ffdede;
+.bom-row-btn:hover {
+  background: #d8e2ec;
+  border-color: #0070c0;
+}
+
+.bom-row-btn:active {
+  background: #c8d8e8;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.bom-row-btn--del {
+  color: #c00;
+  border-color: #e0a0a0;
+}
+
+.bom-row-btn--del:hover {
+  background: #ffe0e0;
   border-color: #c00;
 }
 

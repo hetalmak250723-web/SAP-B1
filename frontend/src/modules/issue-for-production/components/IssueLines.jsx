@@ -2,16 +2,12 @@ import React, { useState } from "react";
 import BatchSerialModal from "./BatchSerialModal";
 
 export default function IssueLines({
-  lines,
-  warehouses,
-  distRules,
-  projects,
-  readOnly,
-  onChange,
+  lines, warehouses, distRules, projects,
+  readOnly, onChange,
 }) {
   const [batchSerialModal, setBatchSerialModal] = useState(null);
   const EMPTY_ROWS = 8;
-  const totalIssueQty = lines.reduce((sum, line) => sum + (Number(line.issue_qty) || 0), 0);
+  const totalIssueQty = lines.reduce((s, l) => s + (Number(l.issue_qty) || 0), 0);
 
   const handleBatchSerialSave = (lineId, data) => {
     onChange(lineId, "batch_numbers", data.batch_numbers);
@@ -28,14 +24,12 @@ export default function IssueLines({
           onClose={() => setBatchSerialModal(null)}
         />
       )}
-
       <div className="ifp-lines-wrap">
         <div className="ifp-grid-scroll">
           <table className="ifp-grid">
             <thead>
               <tr>
-                <th className="ifp-th ifp-th--order">Order No.</th>
-                <th className="ifp-th ifp-th--order-row">Order Row</th>
+                <th className="ifp-th ifp-th--no">Row No.</th>
                 <th className="ifp-th ifp-th--no">Item No.</th>
                 <th className="ifp-th ifp-th--desc">Description</th>
                 <th className="ifp-th ifp-th--planned">Planned Qty</th>
@@ -59,14 +53,8 @@ export default function IssueLines({
                     key={line._id}
                     className={`ifp-grid__row${fullyIssued ? " ifp-grid__row--fully-issued" : ""}`}
                   >
-                    <td className="ifp-grid__cell ifp-grid__cell--readonly">
-                      <span style={{ padding: "0 3px", fontSize: 12 }}>
-                        {line.order_doc_num || line.base_entry || ""}
-                      </span>
-                    </td>
-
                     <td className="ifp-grid__cell ifp-grid__cell--readonly ifp-grid__cell--num">
-                      {Number(line.base_line ?? line.line_num ?? 0)}
+                      {Number(line.line_num ?? 0)}
                     </td>
 
                     <td className="ifp-grid__cell ifp-grid__cell--readonly">
@@ -113,9 +101,9 @@ export default function IssueLines({
                         onChange={(e) => onChange(line._id, "warehouse", e.target.value)}
                       >
                         <option value="">--</option>
-                        {warehouses.map((warehouse) => (
-                          <option key={warehouse.WarehouseCode} value={warehouse.WarehouseCode}>
-                            {warehouse.WarehouseCode}
+                        {warehouses.map((w) => (
+                          <option key={w.WarehouseCode} value={w.WarehouseCode}>
+                            {w.WarehouseCode}
                           </option>
                         ))}
                       </select>
@@ -133,7 +121,7 @@ export default function IssueLines({
                             <>
                               {(line.batch_numbers || []).length > 0 ? (
                                 <span className="batch-serial-btn--selected">
-                                  OK {(line.batch_numbers || []).length} batch(es)
+                                  ✓ {(line.batch_numbers || []).length} batch(es)
                                 </span>
                               ) : (
                                 <span className="batch-serial-btn--empty">Select Batches</span>
@@ -144,7 +132,7 @@ export default function IssueLines({
                             <>
                               {(line.serial_numbers || []).length > 0 ? (
                                 <span className="batch-serial-btn--selected">
-                                  OK {(line.serial_numbers || []).length} serial(s)
+                                  ✓ {(line.serial_numbers || []).length} serial(s)
                                 </span>
                               ) : (
                                 <span className="batch-serial-btn--empty">Select Serials</span>
@@ -153,7 +141,7 @@ export default function IssueLines({
                           )}
                         </button>
                       ) : (
-                        <span style={{ fontSize: 11, color: "#aaa" }}>-</span>
+                        <span style={{ fontSize: 11, color: "#aaa" }}>—</span>
                       )}
                     </td>
 
@@ -165,9 +153,9 @@ export default function IssueLines({
                         onChange={(e) => onChange(line._id, "distribution_rule", e.target.value)}
                       >
                         <option value="">--</option>
-                        {distRules.map((rule) => (
-                          <option key={rule.FactorCode} value={rule.FactorCode}>
-                            {rule.FactorCode}
+                        {distRules.map((d) => (
+                          <option key={d.FactorCode} value={d.FactorCode}>
+                            {d.FactorCode}
                           </option>
                         ))}
                       </select>
@@ -181,9 +169,9 @@ export default function IssueLines({
                         onChange={(e) => onChange(line._id, "project", e.target.value)}
                       >
                         <option value="">--</option>
-                        {projects.map((project) => (
-                          <option key={project.Code} value={project.Code}>
-                            {project.Code}
+                        {projects.map((p) => (
+                          <option key={p.Code} value={p.Code}>
+                            {p.Code}
                           </option>
                         ))}
                       </select>
@@ -193,10 +181,10 @@ export default function IssueLines({
               })}
 
               {lines.length < EMPTY_ROWS &&
-                Array.from({ length: EMPTY_ROWS - lines.length }).map((_, index) => (
-                  <tr key={`e-${index}`} className="ifp-grid__row ifp-grid__row--empty">
-                    {Array.from({ length: 13 }).map((__, cellIndex) => (
-                      <td key={cellIndex} className="ifp-grid__cell ifp-grid__cell--empty" />
+                Array.from({ length: EMPTY_ROWS - lines.length }).map((_, i) => (
+                  <tr key={`e-${i}`} className="ifp-grid__row ifp-grid__row--empty">
+                    {Array.from({ length: 12 }).map((__, j) => (
+                      <td key={j} className="ifp-grid__cell ifp-grid__cell--empty" />
                     ))}
                   </tr>
                 ))}
@@ -216,7 +204,7 @@ export default function IssueLines({
           </div>
           {!readOnly && (
             <span style={{ fontSize: 11, color: "#888", fontStyle: "italic" }}>
-              Backflush items are excluded - they are auto-issued on receipt
+              Backflush items are excluded — they are auto-issued on receipt
             </span>
           )}
         </div>

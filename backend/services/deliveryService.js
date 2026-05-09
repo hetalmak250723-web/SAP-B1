@@ -2,8 +2,6 @@ const sapService = require('./sapService');
 const deliveryDb = require('./deliveryDbService');
 const salesOrderDb = require('./salesOrderDbService');
 const { buildDocumentAdditionalExpenses } = require('./freightPayloadUtils');
-const { applyUdfs } = require('./udfPayloadUtils');
-const { hydrateMarketingDocumentUdfs } = require('./udfValueService');
 
 // ───────── HELPERS ─────────
 
@@ -167,7 +165,7 @@ const buildDocumentLinePayload = async (line = {}, fieldMetadata = {}, includeLi
     }));
   }
 
-  return applyUdfs(documentLine, line.udf);
+  return documentLine;
 };
 
 const buildDocumentLinesPayload = async (lines = [], includeLineNum = false) => {
@@ -308,9 +306,6 @@ const getDeliveryList = async ({
 const getDelivery = async (docEntry) => {
   try {
     const result = await deliveryDb.getDelivery(docEntry);
-    if (result?.delivery) {
-      await hydrateMarketingDocumentUdfs(result.delivery, { headerTable: 'ODLN', rowTable: 'DLN1', docEntry });
-    }
     return result;
   } catch (error) {
     throw new Error(`Failed to load Delivery: ${error.message}`);

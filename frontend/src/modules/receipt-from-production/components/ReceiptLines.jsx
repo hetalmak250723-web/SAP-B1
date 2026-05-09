@@ -21,10 +21,10 @@ export default function ReceiptLines({
   branches,
   readOnly,
   onChange,
+  onAdd,
+  onDelete,
   onItemSearch,
   onAllocate,
-  onOpenProductionOrder,
-  onOpenBOM,
 }) {
   const EMPTY_ROWS = 8;
 
@@ -72,23 +72,7 @@ export default function ReceiptLines({
 
               return (
                 <tr key={line._id} className="rfp-grid__row">
-                  <td className="rfp-grid__cell rfp-grid__cell--readonly">
-                    <div className="rfp-cell-link">
-                      <span>{line.order_no || ""}</span>
-                      {line.base_entry != null && (
-                        <button
-                          type="button"
-                          className="rfp-link-btn"
-                          tabIndex={-1}
-                          onClick={() => onOpenProductionOrder?.(line)}
-                          title="Open Production Order"
-                          aria-label="Open Production Order"
-                        >
-                          <span className="rfp-link-btn__icon" aria-hidden="true" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                  <td className="rfp-grid__cell rfp-grid__cell--readonly">{line.order_no || ""}</td>
                   <td className="rfp-grid__cell rfp-grid__cell--readonly">{line.series_no || ""}</td>
 
                   <td className="rfp-grid__cell">
@@ -100,16 +84,14 @@ export default function ReceiptLines({
                         onChange={(e) => onChange(line._id, "item_code", e.target.value)}
                         placeholder="Item Code"
                       />
-                      {line.item_code && (
+                      {!readOnly && (
                         <button
                           type="button"
-                          className="rfp-link-btn"
+                          className="im-lookup-btn"
                           tabIndex={-1}
-                          onClick={() => onOpenBOM?.(line)}
-                          title="Open Bill of Materials"
-                          aria-label="Open Bill of Materials"
+                          onClick={() => onItemSearch(line._id)}
                         >
-                          <span className="rfp-link-btn__icon" aria-hidden="true" />
+                          ...
                         </button>
                       )}
                     </div>
@@ -307,6 +289,19 @@ export default function ReceiptLines({
         </table>
       </div>
 
+      {!readOnly && (
+        <div className="rfp-row-btns">
+          <button type="button" className="rfp-row-btn" onClick={onAdd} title="Add row">+</button>
+          <button
+            type="button"
+            className="rfp-row-btn rfp-row-btn--del"
+            onClick={() => { const last = lines[lines.length - 1]; if (last) onDelete(last._id); }}
+            title="Remove last row"
+          >
+            -
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-const productionDbService = require('../services/productionDbService');
 const productionOrderService = require('../services/productionOrderService');
+const productionDbService = require('../services/productionDbService');
 
 const getErrorPayload = (error) => ({
   detail:
@@ -12,7 +12,8 @@ const getErrorPayload = (error) => ({
 
 const getReferenceData = async (req, res) => {
   try {
-    res.json(await productionDbService.getProductionOrderReferenceData());
+    const data = await productionDbService.getProductionOrderReferenceData();
+    res.json(data);
   } catch (error) {
     console.error('[ProdOrder] getReferenceData:', error.response?.data || error.message);
     res.status(500).json(getErrorPayload(error));
@@ -31,7 +32,7 @@ const getProductionOrders = async (req, res) => {
 
 const getProductionOrderByDocEntry = async (req, res) => {
   try {
-    const data = await productionOrderService.getProductionOrderByDocEntry(req.params.docEntry);
+    const data = await productionDbService.getProductionOrderByDocEntry(req.params.docEntry);
     res.json(data);
   } catch (error) {
     console.error('[ProdOrder] get:', error.response?.data || error.message);

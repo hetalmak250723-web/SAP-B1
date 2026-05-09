@@ -356,75 +356,6 @@
   gap: 2px;
 }
 
-.rfp-cell-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.rfp-link-btn {
-  width: 18px;
-  min-width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #b6911d;
-  background: linear-gradient(180deg, #fff7c7 0%, #f6d760 52%, #dfb53c 100%);
-  border-radius: 2px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -1px 0 rgba(140, 102, 0, 0.18);
-}
-
-.rfp-link-btn:hover {
-  background: linear-gradient(180deg, #fff9d8 0%, #f9de76 52%, #e4bc49 100%);
-  border-color: #9f7d13;
-}
-
-.rfp-link-btn:active {
-  background: linear-gradient(180deg, #e1b93a 0%, #f5d55e 100%);
-  box-shadow: inset 0 1px 2px rgba(120, 86, 0, 0.25);
-}
-
-.rfp-link-btn__icon {
-  position: relative;
-  width: 10px;
-  height: 10px;
-  display: block;
-}
-
-.rfp-link-btn__icon::before,
-.rfp-link-btn__icon::after {
-  content: "";
-  position: absolute;
-  background: #6d5500;
-  border-radius: 1px;
-}
-
-.rfp-link-btn__icon::before {
-  width: 7px;
-  height: 2px;
-  left: 1px;
-  top: 4px;
-}
-
-.rfp-link-btn__icon::after {
-  width: 6px;
-  height: 6px;
-  right: 0;
-  top: 1px;
-  border-top: 2px solid #6d5500;
-  border-right: 2px solid #6d5500;
-  background: transparent;
-  transform: rotate(45deg);
-  border-radius: 0;
-}
-
 .rfp-cell-input {
   width: 100%;
   border: none;
@@ -482,6 +413,40 @@
   font-size: 10px;
   color: #667085;
   line-height: 1.2;
+}
+
+/* Row buttons */
+.rfp-row-btns {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-top: 1px solid #e0e6ed;
+  background: #f8fafc;
+}
+.rfp-row-btn {
+  width: 28px;
+  height: 24px;
+  border: 1px solid #c8d0da;
+  background: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  color: #003366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rfp-row-btn:hover {
+  background: #e8edf2;
+  border-color: #a0aab4;
+}
+.rfp-row-btn--del {
+  color: #c62828;
+}
+.rfp-row-btn--del:hover {
+  background: #ffebee;
+  border-color: #ef5350;
 }
 
 .rfp-alloc-modal-overlay {

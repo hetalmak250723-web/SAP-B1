@@ -89,7 +89,7 @@ function HeaderUdfSidebar({
                 <label className="form-label mb-1">{field.label}</label>
                 {renderField(
                   field,
-                  values[field.key] ?? '',
+                  values[field.key],
                   disabled,
                   (nextValue) => onFieldChange(field.key, nextValue)
                 )}

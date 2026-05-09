@@ -2,8 +2,6 @@
   background: #f0f2f5;
   min-height: 100%;
   padding: 8px 12px 12px;
-  position: relative;
-  overflow: auto;
 }
 
 .sar-window {
@@ -13,75 +11,12 @@
 }
 
 .sar-window__titlebar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 7px 12px;
   font-size: 14px;
   font-weight: 700;
   color: #003366;
   background: #e8edf2;
   border-bottom: 1px solid #c8d0da;
-  cursor: move;
-}
-
-.sar-window__controls {
-  display: flex;
-  gap: 4px;
-  cursor: default;
-}
-
-.sar-window__controls button {
-  width: 22px;
-  height: 22px;
-  border: 1px solid #9aa4af;
-  background: linear-gradient(180deg, #ffffff 0%, #dedede 100%);
-  color: #555;
-  font-size: 0;
-  line-height: 1;
-}
-
-.sar-window__controls button::before {
-  display: block;
-  font-size: 12px;
-  line-height: 20px;
-}
-
-.sar-window__controls button[aria-label="Minimize"]::before {
-  content: "-";
-}
-
-.sar-window__controls button[aria-label="Restore"]::before,
-.sar-window__controls button[aria-label="Maximize"]::before,
-.sar-window__controls button[aria-label="Restore Down"]::before {
-  content: "[]";
-}
-
-.sar-window__controls button[aria-label="Close"]::before {
-  content: "x";
-}
-
-.sar-window.is-minimized .sar-window__underline,
-.sar-window.is-minimized .sar-window__body,
-.sar-window.is-minimized .sar-window__footer,
-.sar-window.is-minimized .im-tabs {
-  display: none;
-}
-
-.sar-window.is-maximized {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.sar-window.is-maximized .sar-window__body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-.sar-window.is-maximized .sar-window__titlebar {
-  cursor: default;
 }
 
 .sar-window__underline {
