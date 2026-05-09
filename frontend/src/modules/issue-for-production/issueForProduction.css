@@ -49,21 +49,6 @@
   font-style: italic;
 }
 
-.ifp-po-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  background: #ffffff;
-  border: 1px solid #c8dff6;
-  border-radius: 999px;
-}
-
-.ifp-po-pill__num {
-  color: #003366;
-  font-weight: 700;
-}
-
 /* ── Tab panel ── */
 .ifp-tab-panel {
   padding: 0 !important;
@@ -110,8 +95,6 @@
   text-overflow: ellipsis;
 }
 
-.ifp-th--order    { width: 90px;  }
-.ifp-th--order-row{ width: 75px;  }
 .ifp-th--no       { width: 120px; }
 .ifp-th--desc     { width: 180px; }
 .ifp-th--planned  { width: 85px;  }

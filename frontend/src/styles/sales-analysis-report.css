@@ -15,27 +15,6 @@
   overflow: hidden;
 }
 
-.sales-analysis-window.is-maximized,
-.sar-window.is-maximized,
-.pqc-window.is-maximized {
-  display: flex;
-  flex-direction: column;
-}
-
-.sales-analysis-window.is-maximized .sales-analysis-window__body,
-.sar-window.is-maximized .sar-window__body,
-.pqc-window.is-maximized .pqc-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-.sales-analysis-window.is-maximized .sales-analysis-window__titlebar,
-.sar-window.is-maximized .sar-window__titlebar,
-.pqc-window.is-maximized .pqc-titlebar {
-  cursor: default;
-}
-
 .sales-analysis-window--report {
   width: min(1160px, calc(100vw - 300px));
   max-width: none;
@@ -102,18 +81,6 @@
 .item-lookup-modal__controls button[aria-label="Restore"]::before,
 .sales-employee-lookup-modal__controls button[aria-label="Restore"]::before,
 .sap-properties-modal__controls button[aria-label="Restore"]::before {
-  content: "[]";
-}
-
-.sales-analysis-window__controls button[aria-label="Maximize"]::before,
-.sar-window__controls button[aria-label="Maximize"]::before,
-.pqc-titlebar__buttons button[aria-label="Maximize"]::before {
-  content: "[]";
-}
-
-.sales-analysis-window__controls button[aria-label="Restore Down"]::before,
-.sar-window__controls button[aria-label="Restore Down"]::before,
-.pqc-titlebar__buttons button[aria-label="Restore Down"]::before {
   content: "[]";
 }
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import "../../modules/item-master/styles/itemMaster.css";
 import "./bom.css";
 import FindResultsModal from "../../components/FindResultsModal";
@@ -17,7 +16,6 @@ import {
   fetchBOMDistributionRules,
   fetchBOMProjects,
   getItemDetails,
-  getItemPrice,
 } from "../../api/bomApi";
 
 const MODES = { ADD: "add", FIND: "find", UPDATE: "update" };
@@ -62,42 +60,9 @@ export const EMPTY_LINE = () => ({
   WipAccount: "",
   RouteSequence: 0,
   Project: "",
-  // Additional SAP B1 fields for enhanced auto-loading
-  ManageSerialNumbers: "N",
-  ManageBatchNumbers: "N",
-  MaterialType: "",
-  PlanningSystem: "",
-  ProcurementMethod: "",
-  LeadTime: 0,
-  MinimumOrderQuantity: 0,
-  OrderInterval: 0,
-  OrderMultiple: 0,
-  ReorderQuantity: 0,
-  MinimumLevel: 0,
-  MaximumLevel: 0,
-  TaxCodeAR: "",
-  TaxCodeAP: "",
-  IsPhantom: "N",
-  InventoryItem: "Y",
-  SalesItem: "Y",
-  PurchaseItem: "Y",
-  AssetItem: "N",
-  Weight1: 0,
-  Weight1Unit: "",
-  Weight2: 0,
-  Weight2Unit: "",
-  ComponentWarehouse: "",
-  CountryOfOrigin: "",
-  GLPickingMethod: "",
-  NoDiscount: "N",
-  ManageByQuantity: "N",
-  PriceUnit: 1,
-  BaseUnit: "",
 });
 
 export default function BOMModule() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const [mode, setMode] = useState(MODES.ADD);
   const [tab, setTab] = useState(0);
   const [header, setHeader] = useState(EMPTY_HEADER);
@@ -137,82 +102,6 @@ export default function BOMModule() {
     alertTimer.current = setTimeout(() => setAlert(null), 6000);
   }, []);
 
-  const loadBOM = useCallback((data) => {
-    setHeader({
-      TreeCode: data.TreeCode || "",
-      ProductDescription: data.ProductDescription || "",
-      TreeType: data.TreeType || "iProductionTree",
-      Quantity: data.Quantity ?? 1,
-      ProductionStdCost: 0,
-      PlanAvgProdSize: data.PlanAvgProdSize ?? 1,
-      Warehouse: data.Warehouse || "",
-      PriceList: data.PriceList != null ? String(data.PriceList) : "",
-      DistributionRule: data.DistributionRule || "",
-      Project: data.Project || "",
-    });
-
-    setLines(
-      (data.ProductTreeLines || []).map((line) => {
-        const qty = line.Quantity ?? 1;
-        const stdCost = line.ProductionStdCost ?? 0;
-        const price = line.Price ?? 0;
-
-        return {
-          _id: Date.now() + Math.random(),
-          ItemType: line.ItemType || "pit_Item",
-          ItemCode: line.ItemCode || "",
-          ItemName: line.ItemName || "",
-          Quantity: qty,
-          InventoryUOM: line.InventoryUOM || "",
-          Warehouse: line.Warehouse || "",
-          IssueMethod: line.IssueMethod || "im_Manual",
-          ProductionStdCost: stdCost,
-          TotalStdCost: qty * stdCost,
-          PriceList: line.PriceList != null ? String(line.PriceList) : "",
-          Price: price,
-          Total: qty * price,
-          Comment: line.Comment || "",
-          DistributionRule: line.DistributionRule || "",
-          WipAccount: line.WipAccount || "",
-          RouteSequence: line.VisualOrder ?? 0,
-          Project: line.Project || "",
-          // Additional SAP B1 fields
-          ManageSerialNumbers: line.ManageSerialNumbers || "N",
-          ManageBatchNumbers: line.ManageBatchNumbers || "N",
-          MaterialType: line.MaterialType || "",
-          PlanningSystem: line.PlanningSystem || "",
-          ProcurementMethod: line.ProcurementMethod || "",
-          LeadTime: line.LeadTime ?? 0,
-          MinimumOrderQuantity: line.MinimumOrderQuantity ?? 0,
-          OrderInterval: line.OrderInterval ?? 0,
-          OrderMultiple: line.OrderMultiple ?? 0,
-          ReorderQuantity: line.ReorderQuantity ?? 0,
-          MinimumLevel: line.MinimumLevel ?? 0,
-          MaximumLevel: line.MaximumLevel ?? 0,
-          TaxCodeAR: line.TaxCodeAR || "",
-          TaxCodeAP: line.TaxCodeAP || "",
-          IsPhantom: line.IsPhantom || "N",
-          InventoryItem: line.InventoryItem || "Y",
-          SalesItem: line.SalesItem || "Y",
-          PurchaseItem: line.PurchaseItem || "Y",
-          AssetItem: line.AssetItem || "N",
-          Weight1: line.Weight1 ?? 0,
-          Weight1Unit: line.Weight1Unit || "",
-          Weight2: line.Weight2 ?? 0,
-          Weight2Unit: line.Weight2Unit || "",
-          ComponentWarehouse: line.ComponentWarehouse || "",
-          CountryOfOrigin: line.CountryOfOrigin || "",
-          GLPickingMethod: line.GLPickingMethod || "",
-          NoDiscount: line.NoDiscount || "N",
-          ManageByQuantity: line.ManageByQuantity || "N",
-          PriceUnit: line.PriceUnit ?? 1,
-          BaseUnit: line.BaseUnit || "",
-        };
-      })
-    );
-    setSelectedLineId(null);
-  }, []);
-
   const loadExistingBOM = useCallback(
     async (treeCode, message) => {
       const data = await getBOM(treeCode);
@@ -221,7 +110,7 @@ export default function BOMModule() {
       if (message) showAlert("warning", message);
       return data;
     },
-    [loadBOM, showAlert]
+    [showAlert]
   );
 
   const resetForm = useCallback(() => {
@@ -246,30 +135,27 @@ export default function BOMModule() {
       const { target } = itemModal;
       setItemModal({ open: false, target: null });
 
-      if (target === "header" && item.HasExistingBOM) {
-        try {
-          await loadExistingBOM(
-            item.ItemCode,
-            `BOM "${item.ItemCode}" already exists, so it was opened in Update Mode.`
-          );
-          return;
-        } catch (error) {
-          console.warn("Failed to open existing BOM, falling back to item details:", error);
-        }
-      }
-
       try {
+        if (target === "header" && mode === MODES.ADD) {
+          try {
+            await loadExistingBOM(
+              item.ItemCode,
+              `BOM "${item.ItemCode}" already exists, so it was opened in Update Mode.`
+            );
+            return;
+          } catch {
+            // No BOM exists yet, continue with create flow.
+          }
+        }
+
         const details = await getItemDetails(item.ItemCode);
 
         if (target === "header") {
           setHeader((prev) => ({
             ...prev,
-            TreeCode: details.ItemCode || item.ItemCode,
-            ProductDescription: details.ItemName || item.ItemName || prev.ProductDescription,
+            TreeCode: details.ItemCode,
+            ProductDescription: details.ItemName,
             Warehouse: details.DefaultWarehouse || prev.Warehouse,
-            PriceList: details.PriceList || prev.PriceList,
-            DistributionRule: details.DistributionRule || prev.DistributionRule,
-            ProductionStdCost: details.ProductionStdCost || details.StandardCost || prev.ProductionStdCost,
           }));
         } else {
           setLines((prev) =>
@@ -281,54 +167,12 @@ export default function BOMModule() {
                     ItemName: details.ItemName,
                     InventoryUOM: details.InventoryUOM || "",
                     Warehouse: details.DefaultWarehouse || line.Warehouse,
-                    PriceList: details.PriceList || line.PriceList,
-                    Price: details.Price || 0,
-                    ProductionStdCost: details.ProductionStdCost || details.StandardCost || 0,
-                    TotalStdCost: (line.Quantity || 1) * (details.ProductionStdCost || details.StandardCost || 0),
-                    Total: (line.Quantity || 1) * (details.Price || 0),
-                    IssueMethod: details.IssuePrimarilyBy || line.IssueMethod,
-                    WipAccount: details.WipAccount || line.WipAccount,
-                    DistributionRule: details.DistributionRule || line.DistributionRule,
-                    Project: details.Project || line.Project,
-                    // Additional SAP B1 fields for enhanced auto-loading
-                    ManageSerialNumbers: details.ManageSerialNumbers,
-                    ManageBatchNumbers: details.ManageBatchNumbers,
-                    MaterialType: details.MaterialType,
-                    PlanningSystem: details.PlanningSystem,
-                    ProcurementMethod: details.ProcurementMethod,
-                    LeadTime: details.LeadTime,
-                    MinimumOrderQuantity: details.MinimumOrderQuantity,
-                    OrderInterval: details.OrderInterval,
-                    OrderMultiple: details.OrderMultiple,
-                    ReorderQuantity: details.ReorderQuantity,
-                    MinimumLevel: details.MinimumLevel,
-                    MaximumLevel: details.MaximumLevel,
-                    TaxCodeAR: details.TaxCodeAR,
-                    TaxCodeAP: details.TaxCodeAP,
-                    IsPhantom: details.IsPhantom,
-                    InventoryItem: details.InventoryItem,
-                    SalesItem: details.SalesItem,
-                    PurchaseItem: details.PurchaseItem,
-                    AssetItem: details.AssetItem,
-                    Weight1: details.Weight1,
-                    Weight1Unit: details.Weight1Unit,
-                    Weight2: details.Weight2,
-                    Weight2Unit: details.Weight2Unit,
-                    ComponentWarehouse: details.ComponentWarehouse,
-                    CountryOfOrigin: details.CountryOfOrigin,
-                    GLPickingMethod: details.GLPickingMethod,
-                    NoDiscount: details.NoDiscount,
-                    ManageByQuantity: details.ManageByQuantity,
-                    PriceUnit: details.PriceUnit,
-                    BaseUnit: details.BaseUnit,
                   }
                 : line
             )
           );
         }
-      } catch (error) {
-        console.warn("Failed to fetch item details, using basic info:", error);
-        // Fallback to basic item info if detailed fetch fails
+      } catch {
         if (target === "header") {
           setHeader((prev) => ({
             ...prev,
@@ -351,10 +195,10 @@ export default function BOMModule() {
         }
       }
     },
-    [itemModal, loadExistingBOM]
+    [itemModal, loadExistingBOM, mode]
   );
 
-  const handleLineChange = useCallback(async (id, field, value) => {
+  const handleLineChange = useCallback((id, field, value) => {
     setLines((prev) =>
       prev.map((line) => {
         if (line._id !== id) return line;
@@ -370,40 +214,22 @@ export default function BOMModule() {
         return updated;
       })
     );
-
-    // Auto-load price when price list changes
-    if (field === "PriceList" && value) {
-      const line = lines.find(l => l._id === id);
-      if (line && line.ItemCode) {
-        try {
-          const priceData = await getItemPrice(line.ItemCode, value);
-          if (priceData.Price != null) {
-            setLines((prev) =>
-              prev.map((l) => {
-                if (l._id !== id) return l;
-                const qty = Number(l.Quantity) || 0;
-                const newPrice = Number(priceData.Price) || 0;
-                return {
-                  ...l,
-                  Price: newPrice,
-                  Total: qty * newPrice,
-                };
-              })
-            );
-          }
-        } catch (error) {
-          console.warn("Failed to fetch price for price list:", error);
-        }
-      }
-    }
-  }, [lines]);
+  }, []);
 
   const addLine = useCallback(() => {
     const newLine = EMPTY_LINE();
-    setLines((prev) => [...prev, newLine]);
+    setLines((prev) => {
+      const selectedIndex = prev.findIndex((line) => line._id === selectedLineId);
+      if (selectedIndex === -1) {
+        return [...prev, newLine];
+      }
+
+      const next = [...prev];
+      next.splice(selectedIndex + 1, 0, newLine);
+      return next;
+    });
     setSelectedLineId(newLine._id);
-    return newLine._id;
-  }, []);
+  }, [selectedLineId]);
 
   const deleteLine = useCallback((id) => {
     setLines((prev) => {
@@ -480,7 +306,7 @@ export default function BOMModule() {
     };
   }, [header, lines]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (mode === MODES.FIND) {
       await handleFind();
       return;
@@ -518,7 +344,7 @@ export default function BOMModule() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildPayload, header.TreeCode, loadExistingBOM, mode, showAlert, validate]);
 
   const handleFind = useCallback(
     async (treeCode = null) => {
@@ -555,7 +381,7 @@ export default function BOMModule() {
         setLoading(false);
       }
     },
-    [header.ProductDescription, header.TreeCode, loadBOM, loadExistingBOM, showAlert]
+    [header.TreeCode, header.ProductDescription, loadExistingBOM, showAlert]
   );
 
   const handleFindResultSelect = useCallback(
@@ -574,56 +400,57 @@ export default function BOMModule() {
     [loadExistingBOM, showAlert]
   );
 
+  const loadBOM = useCallback((data) => {
+    setHeader({
+      TreeCode: data.TreeCode || "",
+      ProductDescription: data.ProductDescription || "",
+      TreeType: data.TreeType || "iProductionTree",
+      Quantity: data.Quantity ?? 1,
+      ProductionStdCost: 0,
+      PlanAvgProdSize: data.PlanAvgProdSize ?? 1,
+      Warehouse: data.Warehouse || "",
+      PriceList: data.PriceList != null ? String(data.PriceList) : "",
+      DistributionRule: data.DistributionRule || "",
+      Project: data.Project || "",
+    });
+
+    setLines(
+      (data.ProductTreeLines || []).map((line) => {
+        const qty = line.Quantity ?? 1;
+        const stdCost = 0;
+        const price = line.Price ?? 0;
+
+        return {
+          _id: Date.now() + Math.random(),
+          ItemType: line.ItemType || "pit_Item",
+          ItemCode: line.ItemCode || "",
+          ItemName: line.ItemName || "",
+          Quantity: qty,
+          InventoryUOM: line.InventoryUOM || "",
+          Warehouse: line.Warehouse || "",
+          IssueMethod: line.IssueMethod || "im_Manual",
+          ProductionStdCost: stdCost,
+          TotalStdCost: qty * stdCost,
+          PriceList: line.PriceList != null ? String(line.PriceList) : "",
+          Price: price,
+          Total: qty * price,
+          Comment: line.Comment || "",
+          DistributionRule: line.DistributionRule || "",
+          WipAccount: line.WipAccount || "",
+          RouteSequence: line.VisualOrder ?? 0,
+          Project: line.Project || "",
+        };
+      })
+    );
+    setSelectedLineId(null);
+  }, []);
+
   useEffect(() => {
     if (!lines.length) return;
     if (!selectedLineId || !lines.some((line) => line._id === selectedLineId)) {
       setSelectedLineId(lines[0]._id);
     }
   }, [lines, selectedLineId]);
-
-  useEffect(() => {
-    const targetTreeCode = String(location.state?.bomTreeCode || "").trim();
-    if (!targetTreeCode) return;
-
-    let ignore = false;
-
-    const loadFromNavigation = async () => {
-      setLoading(true);
-      try {
-        const data = await loadExistingBOM(targetTreeCode);
-        if (ignore) return;
-        setMode(MODES.UPDATE);
-        showAlert("success", `BOM "${data.TreeCode}" loaded.`);
-      } catch (err) {
-        if (!ignore) {
-          const firstLine = EMPTY_LINE();
-          setMode(MODES.ADD);
-          setHeader({
-            ...EMPTY_HEADER,
-            TreeCode: targetTreeCode,
-            ProductDescription: location.state?.bomItemName || "",
-          });
-          setLines([firstLine]);
-          setSelectedLineId(firstLine._id);
-          showAlert(
-            "warning",
-            err.response?.data?.message || `No BOM found for "${targetTreeCode}".`
-          );
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-          navigate(location.pathname, { replace: true, state: null });
-        }
-      }
-    };
-
-    loadFromNavigation();
-
-    return () => {
-      ignore = true;
-    };
-  }, [location.pathname, location.state, loadExistingBOM, navigate, showAlert]);
 
   return (
     <div className="im-page bom-page">
@@ -860,16 +687,15 @@ export default function BOMModule() {
           onSelect={handleItemSelect}
           onClose={() => setItemModal({ open: false, target: null })}
           fetchItems={(query) =>
-            fetchBOMItems(query, 1000, { headerLookup: itemModal.target === "header" }).then((items) =>
+            fetchBOMItems(query).then((items) =>
               items.filter((item) => item.ItemCode !== header.TreeCode)
             )
           }
-          title="List of Items"
           columns={[
             { key: "ItemCode", label: "Item Code" },
             { key: "ItemName", label: "Item Description" },
             { key: "QuantityOnStock", label: "In Stock" },
-            { key: "ItemsGroupName", label: "Item Group" },
+            { key: "ItemsGroupCode", label: "Item Group" },
           ]}
         />
       )}

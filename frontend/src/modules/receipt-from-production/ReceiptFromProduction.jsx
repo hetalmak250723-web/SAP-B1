@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import "../../modules/item-master/styles/itemMaster.css";
 import "./receiptFromProduction.css";
 import BackflushPreview from "./components/BackflushPreview";
@@ -15,7 +14,6 @@ import {
   createReceipt,
 } from "../../api/receiptFromProductionApi";
 import { fetchBOMItems, getItemDetails } from "../../api/bomApi";
-import { getDefaultSeriesForCurrentYear } from "../../utils/seriesDefaults";
 
 const MODES = { ADD: "add", VIEW: "view", LIST: "list" };
 const TABS = ["Receipt Lines", "Backflush Components", "Remarks"];
@@ -146,7 +144,10 @@ const getAllocationError = (line) => {
     const validBins = (line.bin_allocations || []).filter(
       (row) => row.bin_abs != null && row.bin_abs !== "" && toQty(row.quantity) > 0
     );
-    if (validBins.length > 0 && Math.abs(getBinTotal({ bin_allocations: validBins }) - qty) > EPSILON) {
+    if (validBins.length === 0) {
+      return `Line ${line.item_code}: bin allocations are required.`;
+    }
+    if (Math.abs(getBinTotal({ bin_allocations: validBins }) - qty) > EPSILON) {
       return `Line ${line.item_code}: bin quantity must equal ${qty}.`;
     }
   }
@@ -155,7 +156,6 @@ const getAllocationError = (line) => {
 };
 
 export default function ReceiptFromProductionModule() {
-  const navigate = useNavigate();
   const [mode, setMode] = useState(MODES.ADD);
   const [tab, setTab] = useState(0);
   const [header, setHeader] = useState(EMPTY_HEADER);
@@ -174,23 +174,15 @@ export default function ReceiptFromProductionModule() {
   const [allocationModal, setAllocationModal] = useState({ open: false, lineId: null });
 
   const alertTimer = useRef(null);
-  const defaultSeriesRef = useRef(null);
 
   useEffect(() => {
     fetchReceiptReferenceData()
       .then((data) => {
-        const loadedSeries = data.series || [];
-        const defaultSeries = getDefaultSeriesForCurrentYear(loadedSeries);
         setWarehouses(data.warehouses || []);
         setDistRules(data.distribution_rules || []);
         setProjects(data.projects || []);
         setBranches(data.branches || []);
-        setSeries(loadedSeries);
-        defaultSeriesRef.current = defaultSeries || null;
-        setHeader((prev) => ({
-          ...prev,
-          series: prev.series || (defaultSeries?.Series != null ? String(defaultSeries.Series) : ""),
-        }));
+        setSeries(data.series || []);
       })
       .catch(() => {});
   }, []);
@@ -202,10 +194,7 @@ export default function ReceiptFromProductionModule() {
   }, []);
 
   const resetForm = useCallback(() => {
-    setHeader({
-      ...EMPTY_HEADER,
-      series: defaultSeriesRef.current?.Series != null ? String(defaultSeriesRef.current.Series) : "",
-    });
+    setHeader(EMPTY_HEADER);
     setLines([EMPTY_LINE()]);
     setBackflushLines([]);
     setPoInfo(null);
@@ -238,6 +227,28 @@ export default function ReceiptFromProductionModule() {
       })
     );
   }, [warehouses]);
+
+  const addLine = useCallback(() => {
+    const seeded = poInfo
+      ? {
+          order_no: String(poInfo.doc_num || ""),
+          warehouse: poInfo.warehouse || "",
+          base_entry: poInfo.doc_entry,
+          base_line: 0,
+          base_type: 202,
+          by_product: true,
+        }
+      : {};
+
+    setLines((prev) => [
+      ...prev,
+      applyWarehouseSettings(EMPTY_LINE(seeded), warehouses, seeded.warehouse || ""),
+    ]);
+  }, [poInfo, warehouses]);
+
+  const deleteLine = useCallback((id) => {
+    setLines((prev) => prev.filter((line) => line._id !== id));
+  }, []);
 
   const loadProductionOrder = async (docEntry) => {
     setLoading(true);
@@ -355,23 +366,6 @@ export default function ReceiptFromProductionModule() {
     setPoModal(false);
     loadProductionOrder(po.DocEntry);
   };
-
-  const handleOpenProductionOrder = useCallback((line) => {
-    const docEntry = Number(line?.base_entry ?? poInfo?.doc_entry);
-    if (!Number.isInteger(docEntry) || docEntry <= 0) return;
-    navigate("/production-order", { state: { productionOrderDocEntry: docEntry } });
-  }, [navigate, poInfo]);
-
-  const handleOpenBOM = useCallback((line) => {
-    const itemCode = String(line?.item_code || "").trim();
-    if (!itemCode) return;
-    navigate("/bom", {
-      state: {
-        bomTreeCode: itemCode,
-        bomItemName: line?.item_name || "",
-      },
-    });
-  }, [navigate]);
 
   const handleAllocationSave = useCallback((lineId, allocations) => {
     setLines((prev) =>
@@ -860,10 +854,10 @@ export default function ReceiptFromProductionModule() {
             branches={branches}
             readOnly={isView}
             onChange={handleLineChange}
+            onAdd={addLine}
+            onDelete={deleteLine}
             onItemSearch={(lineId) => setItemModal({ open: true, target: lineId })}
             onAllocate={(lineId) => setAllocationModal({ open: true, lineId })}
-            onOpenProductionOrder={handleOpenProductionOrder}
-            onOpenBOM={handleOpenBOM}
           />
         )}
 

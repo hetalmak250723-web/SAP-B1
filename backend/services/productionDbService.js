@@ -19,7 +19,7 @@ const PRODUCTION_STATUS_TO_SL = {
 const PRODUCTION_TYPE_TO_SL = {
   P: "bopotStandard",
   S: "bopotSpecial",
-  D: "bopotDisassembly",
+  D: "bopotDisassemble",
 };
 
 const ISSUE_METHOD_TO_SL = {
@@ -89,7 +89,6 @@ const lookupProdWarehouses = async () => {
     SELECT WhsCode, WhsName, BinActivat, RecBinEnab, DftBinAbs, AutoRecvMd
     FROM OWHS
     WHERE ISNULL(Inactive, 'N') <> 'Y'
-      AND ISNULL(DropShip, 'N') <> 'Y'
     ORDER BY WhsCode
   `);
 
@@ -101,37 +100,6 @@ const lookupProdWarehouses = async () => {
     DefaultBin: row.DftBinAbs ?? null,
     AutoAllocOnReceipt: row.AutoRecvMd === 1 ? "tYES" : "tNO",
   }));
-};
-
-const getProductionWarehouseCodes = async () => {
-  const rows = await queryRows(`
-    SELECT WhsCode
-    FROM OWHS
-    WHERE ISNULL(Inactive, 'N') <> 'Y'
-      AND ISNULL(DropShip, 'N') <> 'Y'
-    ORDER BY WhsCode
-  `);
-
-  return rows.map((row) => String(row.WhsCode || "").trim()).filter(Boolean);
-};
-
-const resolveProductionWarehouse = async (preferredWarehouse, fallbackWarehouses = []) => {
-  const validWarehouses = await getProductionWarehouseCodes();
-  const validSet = new Set(validWarehouses);
-  const normalizedPreferred = String(preferredWarehouse || "").trim();
-
-  if (normalizedPreferred && validSet.has(normalizedPreferred)) {
-    return normalizedPreferred;
-  }
-
-  for (const candidate of fallbackWarehouses || []) {
-    const normalizedCandidate = String(candidate || "").trim();
-    if (normalizedCandidate && validSet.has(normalizedCandidate)) {
-      return normalizedCandidate;
-    }
-  }
-
-  return validWarehouses[0] || "";
 };
 
 const lookupDistributionRules = async () =>
@@ -211,13 +179,7 @@ const lookupProductionOrderItems = async (query = "") => {
   const trimmed = String(query || "").trim();
   const rows = await queryRows(
     `
-      SELECT TOP 50
-        I.ItemCode,
-        I.ItemName,
-        I.InvntryUom,
-        I.DfltWH AS DefaultWarehouse,
-        T.CreateDate AS BOMCreateDate,
-        T.UpdateDate AS BOMUpdateDate
+      SELECT TOP 50 I.ItemCode, I.ItemName, I.InvntryUom, I.DfltWH AS DefaultWarehouse
       FROM OITM I
       INNER JOIN OITT T ON T.Code = I.ItemCode
       WHERE (
@@ -225,9 +187,7 @@ const lookupProductionOrderItems = async (query = "") => {
         OR I.ItemCode LIKE @like
         OR I.ItemName LIKE @like
       )
-      ORDER BY
-        ISNULL(T.UpdateDate, T.CreateDate) DESC,
-        I.ItemCode DESC
+      ORDER BY I.ItemCode
     `,
     { query: trimmed, like: `%${trimmed}%` }
   );
@@ -244,23 +204,15 @@ const lookupComponentItems = async (query = "") => {
   const trimmed = String(query || "").trim();
   const rows = await queryRows(
     `
-      SELECT TOP 50
-        I.ItemCode,
-        I.ItemName,
-        I.InvntryUom,
-        CASE WHEN ISNULL(W.DropShip, 'N') = 'Y' THEN '' ELSE I.DfltWH END AS DefaultWarehouse,
-        I.ManSerNum,
-        I.ManBtchNum
-      FROM OITM I
-      LEFT JOIN OWHS W
-        ON W.WhsCode = I.DfltWH
+      SELECT TOP 50 ItemCode, ItemName, InvntryUom, DfltWH AS DefaultWarehouse, ManSerNum, ManBtchNum
+      FROM OITM
       WHERE InvntItem = 'Y'
         AND (
           @query = ''
-          OR I.ItemCode LIKE @like
-          OR I.ItemName LIKE @like
+          OR ItemCode LIKE @like
+          OR ItemName LIKE @like
         )
-      ORDER BY I.ItemCode
+      ORDER BY ItemCode
     `,
     { query: trimmed, like: `%${trimmed}%` }
   );
@@ -279,20 +231,15 @@ const lookupResources = async (query = "") => {
   const trimmed = String(query || "").trim();
   const rows = await queryRows(
     `
-      SELECT TOP 50
-        R.ResCode,
-        R.ResName,
-        CASE WHEN ISNULL(W.DropShip, 'N') = 'Y' THEN '' ELSE R.DfltWH END AS DfltWH
-      FROM ORSC R
-      LEFT JOIN OWHS W
-        ON W.WhsCode = R.DfltWH
+      SELECT TOP 50 ResCode, ResName, DfltWH
+      FROM ORSC
       WHERE ProdRes = 'Y'
         AND (
           @query = ''
-          OR R.ResCode LIKE @like
-          OR R.ResName LIKE @like
+          OR ResCode LIKE @like
+          OR ResName LIKE @like
         )
-      ORDER BY R.ResCode
+      ORDER BY ResCode
     `,
     { query: trimmed, like: `%${trimmed}%` }
   );
@@ -369,10 +316,9 @@ const getProductionOrderByDocEntry = async (docEntry) => {
       SELECT T0.DocEntry, T0.DocNum, T0.ItemCode, T0.ProdName, T0.PlannedQty, T0.CmpltQty, T0.RjctQty,
              T0.DueDate, T0.PostDate, T0.StartDate, T0.Status, T0.Type, T0.Warehouse, T0.OcrCode,
              T0.Project, T0.JrnlMemo, T0.Comments, T0.Series, T0.OriginNum, T0.CardCode,
-             T0.CreateDate, T0.BPLId, BP.CardName, BPL.BPLName
+             BP.CardName
       FROM OWOR T0
       LEFT JOIN OCRD BP ON BP.CardCode = T0.CardCode
-      LEFT JOIN OBPL BPL ON BPL.BPLId = T0.BPLId
       WHERE T0.DocEntry = @docEntry
     `,
     { docEntry: entry }
@@ -404,7 +350,7 @@ const getProductionOrderByDocEntry = async (docEntry) => {
       due_date: formatDate(row.DueDate),
       posting_date: formatDate(row.PostDate),
       start_date: formatDate(row.StartDate),
-      order_date: formatDate(row.CreateDate || row.PostDate),
+      order_date: formatDate(row.PostDate),
       status: toProductionStatus(row.Status),
       type: toProductionType(row.Type),
       warehouse: row.Warehouse || "",
@@ -416,10 +362,8 @@ const getProductionOrderByDocEntry = async (docEntry) => {
       series: row.Series != null ? String(row.Series) : "",
       origin_num: row.OriginNum != null ? String(row.OriginNum) : "",
       origin: "",
-      linked_to: "",
-      linked_order: row.OriginNum != null ? String(row.OriginNum) : "",
-      branch: row.BPLId != null ? String(row.BPLId) : "",
-      branch_name: row.BPLName || "",
+      branch: "",
+      branch_name: "",
       customer_code: row.CardCode || "",
       customer_name: row.CardName || "",
       lines: lines.map((line) => ({
@@ -453,63 +397,39 @@ const explodeBOM = async (itemCode, qty = 1) => {
   }
 
   const factor = Number(qty) / (bom.Quantity || 1);
-  const lineWarehouses = (bom.ProductTreeLines || []).map((line) => line.Warehouse || "");
-  const resolvedHeaderWarehouse = await resolveProductionWarehouse(bom.Warehouse, lineWarehouses);
-
-  const resolvedLines = await Promise.all(
-    (bom.ProductTreeLines || []).map(async (line, idx) => {
-      const resolvedLineWarehouse = await resolveProductionWarehouse(
-        line.Warehouse,
-        [resolvedHeaderWarehouse]
-      );
-
-      return {
-        _id: Date.now() + idx + Math.random(),
-        line_num: idx,
-        item_code: line.ItemCode || "",
-        item_name: line.ItemName || "",
-        line_text: line.Comment || "",
-        base_qty: line.Quantity ?? 1,
-        planned_qty: parseFloat((((line.Quantity ?? 1) * factor)).toFixed(6)),
-        issued_qty: 0,
-        uom: line.InventoryUOM || "",
-        warehouse: resolvedLineWarehouse,
-        issue_method: line.IssueMethod || "im_Manual",
-        distribution_rule: line.DistributionRule || "",
-        project: line.Project || "",
-        additional_qty: 0,
-        stage_id: line.StageID ?? "",
-        component_type: line.ItemType || "pit_Item",
-      };
-    })
-  );
-
   return {
     item_code: bom.TreeCode,
     item_name: bom.ProductDescription || "",
     bom_qty: bom.Quantity ?? 1,
-    warehouse: resolvedHeaderWarehouse,
-    lines: resolvedLines,
+    warehouse: bom.Warehouse || "",
+    lines: (bom.ProductTreeLines || []).map((line, idx) => ({
+      _id: Date.now() + idx + Math.random(),
+      line_num: idx,
+      item_code: line.ItemCode || "",
+      item_name: line.ItemName || "",
+      line_text: line.Comment || "",
+      base_qty: line.Quantity ?? 1,
+      planned_qty: parseFloat((((line.Quantity ?? 1) * factor)).toFixed(6)),
+      issued_qty: 0,
+      uom: line.InventoryUOM || "",
+      warehouse: line.Warehouse || bom.Warehouse || "",
+      issue_method: line.IssueMethod || "im_Manual",
+      distribution_rule: line.DistributionRule || "",
+      project: line.Project || "",
+      additional_qty: 0,
+      stage_id: line.StageID ?? "",
+      component_type: line.ItemType || "pit_Item",
+    })),
   };
 };
 
-const getProductionOrderReferenceData = async () => {
-  const [warehouses, distributionRules, projects, series, branches, routeStages] = await Promise.all([
-    lookupProdWarehouses(),
-    lookupDistributionRules(),
-    lookupProjects(),
-    lookupSeries("202"),
-    lookupBranches(),
-    lookupRouteStages(""),
-  ]);
-
-  return {
-    warehouses,
-    distribution_rules: distributionRules,
-    projects,
-    series,
-    branches,
-    route_stages: routeStages,
+const getProductionOrderReferenceData = async () => ({
+  warehouses: await lookupProdWarehouses(),
+  distribution_rules: await lookupDistributionRules(),
+  projects: await lookupProjects(),
+  series: await lookupSeries("202"),
+  branches: await lookupBranches(),
+  route_stages: await lookupRouteStages(""),
   production_order_statuses: [
     { value: "boposPlanned", label: "Planned" },
     { value: "boposReleased", label: "Released" },
@@ -519,12 +439,11 @@ const getProductionOrderReferenceData = async () => {
   production_order_types: [
     { value: "bopotStandard", label: "Standard" },
     { value: "bopotSpecial", label: "Special" },
-    { value: "bopotDisassembly", label: "Disassembly" },
+    { value: "bopotDisassemble", label: "Disassemble" },
   ],
   production_order_priorities: PRODUCTION_PRIORITY_OPTIONS,
   warnings: [],
-  };
-};
+});
 
 const lookupOpenProductionOrders = async (query = "", releasedOnly = false) => {
   const trimmed = String(query || "").trim();
@@ -624,22 +543,13 @@ const getProductionOrderForIssue = async (docEntry) => {
   };
 };
 
-const getIssueReferenceData = async () => {
-  const [warehouses, distributionRules, projects, series] = await Promise.all([
-    lookupProdWarehouses(),
-    lookupDistributionRules(),
-    lookupProjects(),
-    lookupSeries("60"),
-  ]);
-
-  return {
-    warehouses,
-    distribution_rules: distributionRules,
-    projects,
-    series,
-    warnings: [],
-  };
-};
+const getIssueReferenceData = async () => ({
+  warehouses: await lookupProdWarehouses(),
+  distribution_rules: await lookupDistributionRules(),
+  projects: await lookupProjects(),
+  series: await lookupSeries("60"),
+  warnings: [],
+});
 
 const getIssueList = async ({ query = "", top = 50, skip = 0 } = {}) => {
   const { top: limit, skip: offset } = pagingParams(top, skip);
@@ -808,24 +718,14 @@ const getProductionOrderForReceipt = async (docEntry) => {
   };
 };
 
-const getReceiptReferenceData = async () => {
-  const [warehouses, distributionRules, projects, branches, series] = await Promise.all([
-    lookupProdWarehouses(),
-    lookupDistributionRules(),
-    lookupProjects(),
-    lookupBranches(),
-    lookupSeries("59"),
-  ]);
-
-  return {
-    warehouses,
-    distribution_rules: distributionRules,
-    projects,
-    branches,
-    series,
-    warnings: [],
-  };
-};
+const getReceiptReferenceData = async () => ({
+  warehouses: await lookupProdWarehouses(),
+  distribution_rules: await lookupDistributionRules(),
+  projects: await lookupProjects(),
+  branches: await lookupBranches(),
+  series: await lookupSeries("59"),
+  warnings: [],
+});
 
 const getReceiptList = async ({ query = "", top = 50, skip = 0 } = {}) => {
   const { top: limit, skip: offset } = pagingParams(top, skip);
@@ -989,7 +889,6 @@ module.exports = {
   lookupProductionOrderItems,
   lookupComponentItems,
   lookupResources,
-  resolveProductionWarehouse,
   lookupRouteStages,
   lookupProdWarehouses,
   lookupDistributionRules,

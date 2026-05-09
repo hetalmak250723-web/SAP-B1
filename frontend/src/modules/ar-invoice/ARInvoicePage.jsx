@@ -3,7 +3,6 @@ import './styles/arInvoice.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FormSettingsPanel from '../../components/purchase-order/FormSettingsPanel';
 import HeaderUdfSidebar from '../../components/purchase-order/HeaderUdfSidebar';
-import { useMarketingDocumentUdfs } from '../../hooks/useMarketingDocumentUdfs';
 import ContentsTab from './components/ContentsTab';
 import LogisticsTab from './components/LogisticsTab';
 import AccountingTab from './components/AccountingTab';
@@ -150,19 +149,6 @@ function ARInvoicePage() {
   const [activeTab, setActiveTab] = useState('Contents');
   const [headerUdfs, setHeaderUdfs] = useState(() => createUdfState(HEADER_UDF_DEFINITIONS));
   const [formSettings, setFormSettings] = useState(() => readSavedFormSettings());
-  const {
-    headerFields: headerUdfFields,
-    rowFields: rowUdfFields,
-    visibleHeaderFields: visHdrUdfs,
-    createHeaderUdfState,
-    createRowUdfState,
-  } = useMarketingDocumentUdfs({
-    documentType: 'ar-invoice',
-    fallbackHeaderFields: [],
-    fallbackRowFields: [],
-    formSettings,
-    setFormSettings,
-  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarOrientation, setSidebarOrientation] = useState('vertical');
   const [formSettingsOpen, setFormSettingsOpen] = useState(false);
@@ -294,10 +280,10 @@ function ARInvoicePage() {
         
         setLines(
           Array.isArray(so.lines) && so.lines.length
-            ? so.lines.map(l => ({ ...createLine(), ...l, udf: createRowUdfState(l.udf || {}) }))
+            ? so.lines.map(l => ({ ...createLine(), ...l, udf: { ...createUdfState(ROW_UDF_DEFINITIONS), ...(l.udf || {}) } }))
             : [createLine()]
         );
-        setHeaderUdfs(createHeaderUdfState(so.header_udfs || {}));
+        setHeaderUdfs({ ...createUdfState(HEADER_UDF_DEFINITIONS), ...(so.header_udfs || {}) });
         if (so.header?.customerCode || so.header?.customer) {
           loadVendorDetails(so.header?.customerCode || so.header?.customer);
         }
@@ -1637,7 +1623,7 @@ function ARInvoicePage() {
       const r = currentDocEntry ? await updateARInvoice(currentDocEntry, payload) : await submitARInvoice(payload);
       const dn = r.data.doc_num ? ` Doc No: ${r.data.doc_num}.` : '';
       setCurrentDocEntry(null); setHeader(INIT_HEADER); setLines([createLine()]);
-      setHeaderUdfs(createHeaderUdfState()); setActiveTab('Contents');
+      setHeaderUdfs(createUdfState(HEADER_UDF_DEFINITIONS)); setActiveTab('Contents');
       setRefData(p => ({ ...p, contacts: [], pay_to_addresses: [] }));
       setValErrors({ header: {}, lines: {}, form: '' });
       
@@ -1656,11 +1642,12 @@ function ARInvoicePage() {
 
   const resetForm = () => {
     setCurrentDocEntry(null); setHeader(INIT_HEADER); setLines([createLine()]);
-    setHeaderUdfs(createHeaderUdfState()); setActiveTab('Contents');
+    setHeaderUdfs(createUdfState(HEADER_UDF_DEFINITIONS)); setActiveTab('Contents');
     setValErrors({ header: {}, lines: {}, form: '' });
     setPageState(p => ({ ...p, error: '', success: '' }));
   };
 
+  const visHdrUdfs = HEADER_UDF_DEFINITIONS.filter(f => formSettings.headerUdfs?.[f.key]?.visible !== false);
 
   // Continue in next part with render...
 
@@ -2247,8 +2234,8 @@ function ARInvoicePage() {
         isOpen={formSettingsOpen}
         onClose={() => setFormSettingsOpen(false)}
         matrixFields={[]}
-        headerUdfFields={headerUdfFields}
-        rowUdfFields={rowUdfFields}
+        headerUdfFields={HEADER_UDF_DEFINITIONS}
+        rowUdfFields={ROW_UDF_DEFINITIONS}
         formSettings={formSettings}
         onSettingChange={updateFormSetting}
       />

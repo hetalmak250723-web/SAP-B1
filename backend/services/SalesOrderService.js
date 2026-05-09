@@ -1,8 +1,6 @@
 const sapService = require('./sapService');
 const salesOrderDb = require('./salesOrderDbService');
 const { buildDocumentAdditionalExpenses } = require('./freightPayloadUtils');
-const { applyUdfs } = require('./udfPayloadUtils');
-const { hydrateMarketingDocumentUdfs } = require('./udfValueService');
 
 const normalizeBranchId = (branch) => {
   const normalized = String(branch || '').trim();
@@ -346,7 +344,7 @@ const buildDocumentLinePayload = async (line = {}, context = {}) => {
     }));
   }
 
-  return applyUdfs(documentLine, line.udf);
+  return documentLine;
 };
 
 const buildDocumentLinesPayload = async (lines = [], includeLineNum = false) => {
@@ -528,9 +526,6 @@ const getSalesOrder = async (docEntry) => {
   try {
     // Use ODBC for reading single order
     const result = await salesOrderDb.getSalesOrder(docEntry);
-    if (result?.sales_order) {
-      await hydrateMarketingDocumentUdfs(result.sales_order, { headerTable: 'ORDR', rowTable: 'RDR1', docEntry });
-    }
     return result;
   } catch (error) {
     console.error('[Sales Order Service] Failed to load sales order via ODBC:', error);

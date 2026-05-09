@@ -54,7 +54,7 @@
   min-height: 100%;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
   width: 100%;
 }
@@ -84,13 +84,13 @@
 }
 
 .so-layout__main {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .so-layout__sidebar {
   width: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Override Bootstrap column classes in sidebar */
@@ -333,12 +333,12 @@
   padding: 10px 14px;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .so-field-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 6px 20px;
   min-width: 0;
   max-width: 100%;
@@ -351,7 +351,7 @@
   min-height: 26px;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .so-field__label {
@@ -478,7 +478,7 @@
   min-height: 260px;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -489,7 +489,7 @@
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
 }
 
@@ -503,7 +503,7 @@
   max-width: 100%;
   box-sizing: border-box;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .so-grid-wrap__scroller {
@@ -522,8 +522,7 @@
   scrollbar-width: thin;
   flex: 1;
   overflow-x: auto;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+  overflow-y: visible;
 }
 
 .so-grid-wrap__scroller::-webkit-scrollbar {
@@ -611,11 +610,11 @@
 }
 
 .so-grid {
-  width: max-content;
+  width: 100%;
   border-collapse: collapse;
   font-size: 11px;
   table-layout: auto;
-  min-width: 1800px;
+  min-width: 0;
   box-sizing: border-box;
 }
 

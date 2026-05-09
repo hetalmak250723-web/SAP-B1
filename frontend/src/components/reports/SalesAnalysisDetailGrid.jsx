@@ -1,6 +1,5 @@
 import React from "react";
 import AnalysisChartsPanel from "./AnalysisChartsPanel";
-import SapWindowControls from "./SapWindowControls";
 
 const formatNumber = (value) =>
   new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value || 0));
@@ -25,21 +24,15 @@ export default function SalesAnalysisDetailGrid({
   onExportPdf,
   exportLabel = "Export",
   pdfExportLabel = "PDF",
-  windowFrame,
-  onClose,
 }) {
   if (result.detailLayout === "sapDocument") {
     const primaryLabel = result.chartData?.primaryLabel || "Amount";
     const secondaryLabel = result.chartData?.secondaryLabel || "Applied Amount";
 
     return (
-      <div
-        className={`sar-window${windowFrame?.isMinimized ? " is-minimized" : ""}${windowFrame?.isMaximized ? " is-maximized" : ""}`}
-        {...(windowFrame?.windowProps || {})}
-      >
-        <div className="sar-window__titlebar" {...(windowFrame?.titleBarProps || {})}>
+      <div className="sar-window">
+        <div className="sar-window__titlebar">
           <span>{result.title}</span>
-          <SapWindowControls windowFrame={windowFrame} onClose={onClose} />
         </div>
         <div className="sar-window__underline" />
 
@@ -115,13 +108,9 @@ export default function SalesAnalysisDetailGrid({
   const footerLabelColSpan = reportPeriod === "annual" ? 7 : 8;
 
   return (
-    <div
-      className={`sar-window${windowFrame?.isMinimized ? " is-minimized" : ""}${windowFrame?.isMaximized ? " is-maximized" : ""}`}
-      {...(windowFrame?.windowProps || {})}
-    >
-      <div className="sar-window__titlebar" {...(windowFrame?.titleBarProps || {})}>
+    <div className="sar-window">
+      <div className="sar-window__titlebar">
         <span>{result.title}</span>
-        <SapWindowControls windowFrame={windowFrame} onClose={onClose} />
       </div>
       <div className="sar-window__underline" />
 

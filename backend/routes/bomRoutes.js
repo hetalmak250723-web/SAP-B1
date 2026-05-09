@@ -4,13 +4,12 @@ const {
   listBOMs, getBOM, createBOM, updateBOM, deleteBOM,
   lookupItems, lookupWarehouses, lookupPriceLists,
   lookupDistributionRules, lookupProjects, lookupGLAccounts,
-  getItemDetails, getItemPrice,
+  getItemDetails,
 } = require("../controllers/bomController");
 
 // Lookups (must be before /:treeCode)
 router.get("/lookup/items",               lookupItems);
 router.get("/lookup/item-details/:itemCode", getItemDetails);
-router.get("/lookup/item-price/:itemCode", getItemPrice);
 router.get("/lookup/warehouses",          lookupWarehouses);
 router.get("/lookup/price-lists",         lookupPriceLists);
 router.get("/lookup/distribution-rules",  lookupDistributionRules);

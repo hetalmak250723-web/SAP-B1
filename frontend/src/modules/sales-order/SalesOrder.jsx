@@ -4,7 +4,6 @@ import '../../modules/item-master/styles/itemMaster.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FormSettingsPanel from '../../components/purchase-order/FormSettingsPanel';
 import HeaderUdfSidebar from '../../components/purchase-order/HeaderUdfSidebar';
-import { useMarketingDocumentUdfs } from '../../hooks/useMarketingDocumentUdfs';
 import ContentsTab from './components/ContentsTab';
 import LogisticsTab from './components/LogisticsTab';
 import AccountingTab from './components/AccountingTab';
@@ -174,20 +173,6 @@ function SalesOrder() {
     const [activeTab, setActiveTab] = useState('Contents');
     const [headerUdfs, setHeaderUdfs] = useState(() => createUdfState(HEADER_UDF_DEFINITIONS));
     const [formSettings, setFormSettings] = useState(() => readSavedFormSettings());
-    const {
-        headerFields: headerUdfFields,
-        rowFields: rowUdfFields,
-        visibleHeaderFields: visHdrUdfs,
-        visibleRowFields,
-        createHeaderUdfState,
-        createRowUdfState,
-    } = useMarketingDocumentUdfs({
-        documentType: 'sales-order',
-        fallbackHeaderFields: [],
-        fallbackRowFields: [],
-        formSettings,
-        setFormSettings,
-    });
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [formSettingsOpen, setFormSettingsOpen] = useState(false);
     const [refData, setRefData] = useState({
@@ -527,12 +512,12 @@ function SalesOrder() {
                                 hsnCode: hsnCode,
                                 stcode: l.stcode || l.taxCode || '',
                                 loc: l.loc || resolveLineLocation(l.whse, l.branch || so.header?.branch || header.branch),
-                                udf: createRowUdfState(l.udf || {})
+                                udf: { ...createUdfState(ROW_UDF_DEFINITIONS), ...(l.udf || {}) }
                             };
                         })
                         : [createLine()]
                 );
-                setHeaderUdfs(createHeaderUdfState(so.header_udfs || {}));
+                setHeaderUdfs({ ...createUdfState(HEADER_UDF_DEFINITIONS), ...(so.header_udfs || {}) });
 
                 if (so.header?.customerCode) {
                     loadVendorDetails(so.header.customerCode);
@@ -2145,7 +2130,7 @@ function SalesOrder() {
             const resetHeader = createInitialHeader();
             setCurrentDocEntry(null); setHeader(resetHeader); setLines([createLine()]);
             setFreightModal({ open: false, freightCharges: [], loading: false });
-            setHeaderUdfs(createHeaderUdfState()); setActiveTab('Contents');
+            setHeaderUdfs(createUdfState(HEADER_UDF_DEFINITIONS)); setActiveTab('Contents');
             setRefData(p => ({ ...p, contacts: [], pay_to_addresses: [] }));
             setValErrors({ header: {}, lines: {}, form: '' });
 
@@ -2168,7 +2153,7 @@ function SalesOrder() {
         const resetHeader = createInitialHeader();
         setCurrentDocEntry(null); setHeader(resetHeader); setLines([createLine()]);
         setFreightModal({ open: false, freightCharges: [], loading: false });
-        setHeaderUdfs(createHeaderUdfState()); setActiveTab('Contents');
+        setHeaderUdfs(createUdfState(HEADER_UDF_DEFINITIONS)); setActiveTab('Contents');
         setValErrors({ header: {}, lines: {}, form: '' });
         setPageState(p => ({ ...p, error: '', success: '' }));
 
@@ -2178,6 +2163,7 @@ function SalesOrder() {
         }
     };
 
+    const visHdrUdfs = HEADER_UDF_DEFINITIONS.filter(f => formSettings.headerUdfs?.[f.key]?.visible !== false);
 
     useEffect(() => {
         const handleShortcut = (event) => {
@@ -2946,8 +2932,8 @@ function SalesOrder() {
                 isOpen={formSettingsOpen}
                 onClose={() => setFormSettingsOpen(false)}
                 matrixFields={BASE_MATRIX_COLUMNS}
-                headerUdfFields={headerUdfFields}
-                rowUdfFields={rowUdfFields}
+                headerUdfFields={HEADER_UDF_DEFINITIONS}
+                rowUdfFields={ROW_UDF_DEFINITIONS}
                 formSettings={formSettings}
                 onSettingChange={updateFormSetting}
             />
