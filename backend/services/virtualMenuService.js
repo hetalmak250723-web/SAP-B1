@@ -67,6 +67,16 @@ const REPORTS_MENU = {
           children: [],
         },
         {
+          menuId: 'virtual-reports-purchase-quotation-comparison',
+          menuName: 'Purchase Quotation Comparison Report',
+          menuPath: '/reports/purchasing/purchase-quotation-comparison',
+          parentId: 'virtual-reports-purchasing',
+          icon: 'PQ',
+          sortOrder: 980215,
+          rights: DEFAULT_RIGHTS,
+          children: [],
+        },
+        {
           menuId: 'virtual-reports-purchase-request-report',
           menuName: 'Purchase Request Report',
           menuPath: '/reports/purchasing/purchase-request-report',

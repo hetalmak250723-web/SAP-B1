@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "../../modules/item-master/styles/itemMaster.css";
 import "./productionOrder.css";
 import ProductionOrderLines from "./components/ProductionOrderLines";
 import ProductionOrderList  from "./components/ProductionOrderList";
 import ItemSearchModal       from "../bom/components/ItemSearchModal";
 import CustomerSearchModal   from "./components/CustomerSearchModal";
+import { getDefaultSeriesForCurrentYear } from "../../utils/seriesDefaults";
 import {
   fetchProductionOrderReferenceData,
   fetchProductionOrderByDocEntry,
@@ -29,6 +31,7 @@ const TABS  = ["Components", "Remarks"];
 const today = () => new Date().toISOString().slice(0, 10);
 
 const EMPTY_HEADER = {
+  doc_num:           "",
   item_code:         "",
   item_name:         "",
   planned_qty:       1,
@@ -49,6 +52,8 @@ const EMPTY_HEADER = {
   customer_code:     "",
   customer_name:     "",
   origin:            "",
+  linked_to:         "",
+  linked_order:      "",
   journal_remark:    "",
   remarks:           "",
   series:            "",
@@ -84,10 +89,13 @@ const STATUS_LABELS = {
 const TYPE_LABELS = {
   bopotStandard:    "Standard",
   bopotSpecial:     "Special",
-  bopotDisassemble: "Disassemble",
+  bopotDisassembly: "Disassembly",
+  bopotDisassemble: "Disassembly",
 };
 
 export default function ProductionOrderModule() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [mode,    setMode]    = useState(MODES.ADD);
   const [tab,     setTab]     = useState(0);
   const [header,  setHeader]  = useState(EMPTY_HEADER);
@@ -114,19 +122,27 @@ export default function ProductionOrderModule() {
   const [customerModal, setCustomerModal] = useState(false);
 
   const alertTimer = useRef(null);
+  const defaultSeriesRef = useRef(null);
 
   useEffect(() => {
     // Load reference data
     fetchProductionOrderReferenceData()
       .then((d) => {
+        const loadedSeries = d.series || [];
+        const defaultSeries = getDefaultSeriesForCurrentYear(loadedSeries);
+        defaultSeriesRef.current = defaultSeries || null;
         setWarehouses(d.warehouses || []);
         setDistRules(d.distribution_rules || []);
         setProjects(d.projects || []);
-        setSeries(d.series || []);
+        setSeries(loadedSeries);
         setBranches(d.branches || []);
         setRouteStages(d.route_stages || []);
         setProdTypes(d.production_order_types || []);
         setProdStatuses(d.production_order_statuses || []);
+        setHeader((prev) => ({
+          ...prev,
+          series: prev.series || (defaultSeries?.Series != null ? String(defaultSeries.Series) : ""),
+        }));
       })
       .catch(() => {
         // Fallback: load individually
@@ -144,7 +160,10 @@ export default function ProductionOrderModule() {
   }, []);
 
   const resetForm = () => {
-    setHeader(EMPTY_HEADER);
+    setHeader({
+      ...EMPTY_HEADER,
+      series: defaultSeriesRef.current?.Series != null ? String(defaultSeriesRef.current.Series) : "",
+    });
     setLines([EMPTY_LINE()]);
     setTab(0);
     setAlert(null);
@@ -168,7 +187,7 @@ export default function ProductionOrderModule() {
     }
   }, []);
 
-  // ── BOM explosion ──────────────────────────────────────────────────────────
+  // â”€â”€ BOM explosion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleExplodeBOM = async () => {
     if (!header.item_code.trim()) {
       showAlert("error", "Enter a finished goods item code first.");
@@ -184,7 +203,7 @@ export default function ProductionOrderModule() {
       }));
       if (data.lines && data.lines.length > 0) {
         setLines(data.lines);
-        showAlert("success", `BOM exploded — ${data.lines.length} component(s) loaded.`);
+        showAlert("success", `BOM exploded â€” ${data.lines.length} component(s) loaded.`);
       } else {
         showAlert("error", "No BOM found for this item.");
       }
@@ -195,7 +214,7 @@ export default function ProductionOrderModule() {
     }
   };
 
-  // ── Item selected from modal ───────────────────────────────────────────────
+  // â”€â”€ Item selected from modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleItemSelect = useCallback(async (item) => {
     const { target } = itemModal;
     setItemModal({ open: false, target: null });
@@ -267,7 +286,7 @@ export default function ProductionOrderModule() {
     }
   }, [itemModal, header.planned_qty, lines, showAlert]);
 
-  // ── Customer selected from modal ───────────────────────────────────────────
+  // â”€â”€ Customer selected from modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleCustomerSelect = useCallback((customer) => {
     setCustomerModal(false);
     setHeader((prev) => ({
@@ -277,7 +296,7 @@ export default function ProductionOrderModule() {
     }));
   }, []);
 
-  // ── Line changes ───────────────────────────────────────────────────────────
+  // â”€â”€ Line changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleLineChange = useCallback((id, field, value) => {
     setLines((prev) =>
       prev.map((l) => {
@@ -302,15 +321,19 @@ export default function ProductionOrderModule() {
   const addLine    = () => setLines((prev) => [...prev, EMPTY_LINE()]);
   const deleteLine = useCallback((id) => setLines((prev) => prev.filter((l) => l._id !== id)), []);
 
-  // ── Validate ───────────────────────────────────────────────────────────────
+  // â”€â”€ Validate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const validate = () => {
     if (!header.item_code.trim())       { showAlert("error", "Finished goods item is required.");  return false; }
     if (Number(header.planned_qty) <= 0){ showAlert("error", "Planned quantity must be > 0.");     return false; }
     if (!header.due_date)               { showAlert("error", "Due date is required.");             return false; }
+    if (mode === MODES.ADD && !String(header.series || "").trim()) {
+      showAlert("error", "Series is required.");
+      return false;
+    }
     return true;
   };
 
-  // ── Build payload ──────────────────────────────────────────────────────────
+  // â”€â”€ Build payload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const buildPayload = () => ({
     item_code:         header.item_code,
     planned_qty:       Number(header.planned_qty),
@@ -336,7 +359,7 @@ export default function ProductionOrderModule() {
       .map((l, idx) => ({ ...l, line_num: idx })),
   });
 
-  // ── Save ───────────────────────────────────────────────────────────────────
+  // â”€â”€ Save â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSave = async () => {
     if (mode === MODES.FIND) { await handleFind(); return; }
     if (!validate()) return;
@@ -431,9 +454,10 @@ export default function ProductionOrderModule() {
     }
   };
 
-  // ── Load order from SAP response ───────────────────────────────────────────
+  // â”€â”€ Load order from SAP response â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const _loadOrder = (data) => {
     setHeader({
+      doc_num:           data.doc_num            || "",
       item_code:         data.item_code         || "",
       item_name:         data.item_name         || "",
       planned_qty:       data.planned_qty        ?? 1,
@@ -454,6 +478,8 @@ export default function ProductionOrderModule() {
       customer_code:     data.customer_code      || "",
       customer_name:     data.customer_name      || "",
       origin:            data.origin             || "",
+      linked_to:         data.linked_to          || "",
+      linked_order:      data.linked_order       || "",
       journal_remark:    data.journal_remark     || "",
       remarks:           data.remarks            || "",
       series:            data.series             || "",
@@ -481,7 +507,42 @@ export default function ProductionOrderModule() {
     );
   };
 
-  // ── Select from list ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const targetDocEntry = location.state?.productionOrderDocEntry;
+    if (!targetDocEntry) return;
+
+    let ignore = false;
+
+    const loadFromNavigation = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchProductionOrderByDocEntry(targetDocEntry);
+        if (ignore) return;
+        _loadOrder(data.production_order);
+        setDocEntry(Number(targetDocEntry));
+        setMode(MODES.UPDATE);
+        showAlert("success", `Production Order #${data.production_order.doc_num} loaded.`);
+      } catch (err) {
+        if (!ignore) {
+          const errorMsg = err.response?.data?.detail || err.response?.data?.message || err.message || "Load failed.";
+          showAlert("error", errorMsg);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+          navigate(location.pathname, { replace: true, state: null });
+        }
+      }
+    };
+
+    loadFromNavigation();
+
+    return () => {
+      ignore = true;
+    };
+  }, [location.pathname, location.state, navigate, showAlert]);
+
+  // â”€â”€ Select from list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSelectFromList = async (de) => {
     if (de === null) {
       setMode(MODES.ADD);
@@ -510,7 +571,7 @@ export default function ProductionOrderModule() {
   const statusKey  = STATUS_LABELS[header.status] || header.status;
   const canEditStatus = mode === MODES.UPDATE && !isReadOnly;
 
-  // ── List view ──────────────────────────────────────────────────────────────
+  // â”€â”€ List view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (mode === MODES.LIST) {
     return <ProductionOrderList initialQuery={listQuery} onSelect={handleSelectFromList} />;
   }
@@ -530,7 +591,7 @@ export default function ProductionOrderModule() {
         )}
 
         <button className="im-btn im-btn--primary" onClick={handleSave} disabled={loading || isReadOnly}>
-          {loading ? "…" : mode === MODES.FIND ? "Find" : mode === MODES.ADD ? "Add" : "Update"}
+          {loading ? "â€¦" : mode === MODES.FIND ? "Find" : mode === MODES.ADD ? "Add" : "Update"}
         </button>
         <button className="im-btn" onClick={() => { setMode(MODES.ADD); resetForm(); }}>New</button>
         <button className="im-btn" onClick={() => setMode(MODES.LIST)}>List</button>
@@ -548,7 +609,7 @@ export default function ProductionOrderModule() {
 
       {alert && <div className={`im-alert im-alert--${alert.type}`}>{alert.msg}</div>}
 
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <div className="im-header-card">
         <div className="po-header-layout">
 
@@ -556,7 +617,7 @@ export default function ProductionOrderModule() {
           <div className="po-header-left">
             <div className="im-field">
               <label className="im-field__label po-lbl">No.</label>
-              <input className="im-field__input po-readonly" value={header.origin_num || (mode === MODES.ADD ? "(auto)" : "")} readOnly style={{ width: 100 }} />
+              <input className="im-field__input po-readonly" value={header.doc_num || (mode === MODES.ADD ? "(auto)" : "")} readOnly style={{ width: 100 }} />
             </div>
 
             <div className="im-field">
@@ -597,7 +658,7 @@ export default function ProductionOrderModule() {
                   onChange={handleHeaderChange} readOnly={mode === MODES.UPDATE}
                   style={{ width: 130 }} autoFocus />
                 {mode !== MODES.UPDATE && (
-                  <button className="im-lookup-btn" onClick={() => setItemModal({ open: true, target: "header" })}>…</button>
+                  <button className="im-lookup-btn" onClick={() => setItemModal({ open: true, target: "header" })}>â€¦</button>
                 )}
               </div>
             </div>
@@ -643,15 +704,7 @@ export default function ProductionOrderModule() {
                 readOnly={isReadOnly} style={{ width: 100 }} />
             </div>
 
-            {/* BOM Explosion button */}
-            {mode === MODES.ADD && (
-              <div className="im-field">
-                <label className="im-field__label po-lbl"></label>
-                <button className="im-btn" onClick={handleExplodeBOM} disabled={loading}>
-                  {loading ? "…" : "Explode BOM"}
-                </button>
-              </div>
-            )}
+
           </div>
 
           {/* Right column */}
@@ -685,13 +738,13 @@ export default function ProductionOrderModule() {
             <div className="im-field">
               <label className="im-field__label po-lbl-r">Linked To</label>
               <input className="im-field__input po-readonly" 
-                value="" readOnly style={{ width: 140 }} />
+                value={header.linked_to} readOnly style={{ width: 140 }} />
             </div>
 
             <div className="im-field">
               <label className="im-field__label po-lbl-r">Linked Order</label>
               <input className="im-field__input po-readonly" 
-                value="" readOnly style={{ width: 140 }} />
+                value={header.linked_order} readOnly style={{ width: 140 }} />
             </div>
 
             <div className="im-field">
@@ -701,7 +754,7 @@ export default function ProductionOrderModule() {
                   value={header.customer_code} onChange={handleHeaderChange}
                   readOnly={isReadOnly} style={{ width: 100 }} />
                 {!isReadOnly && (
-                  <button className="im-lookup-btn" onClick={() => setCustomerModal(true)}>…</button>
+                  <button className="im-lookup-btn" onClick={() => setCustomerModal(true)}>â€¦</button>
                 )}
               </div>
               <input className="im-field__input po-readonly" 
@@ -725,7 +778,7 @@ export default function ProductionOrderModule() {
                 onChange={handleHeaderChange} disabled={isReadOnly} style={{ width: 160 }}>
                 <option value="">--</option>
                 {distRules.map((d) => (
-                  <option key={d.FactorCode} value={d.FactorCode}>{d.FactorCode} – {d.FactorDescription}</option>
+                  <option key={d.FactorCode} value={d.FactorCode}>{d.FactorCode} â€“ {d.FactorDescription}</option>
                 ))}
               </select>
             </div>
@@ -736,7 +789,7 @@ export default function ProductionOrderModule() {
                 onChange={handleHeaderChange} disabled={isReadOnly} style={{ width: 160 }}>
                 <option value="">--</option>
                 {projects.map((p) => (
-                  <option key={p.Code} value={p.Code}>{p.Code} – {p.Name}</option>
+                  <option key={p.Code} value={p.Code}>{p.Code} â€“ {p.Name}</option>
                 ))}
               </select>
             </div>

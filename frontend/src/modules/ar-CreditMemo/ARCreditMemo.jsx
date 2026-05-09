@@ -3,6 +3,7 @@ import './styles/ARCreditMemo.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FormSettingsPanel from '../../components/purchase-order/FormSettingsPanel';
 import HeaderUdfSidebar from '../../components/purchase-order/HeaderUdfSidebar';
+import { useMarketingDocumentUdfs } from '../../hooks/useMarketingDocumentUdfs';
 import ContentsTab from './components/ContentsTab';
 import LogisticsTab from './components/LogisticsTab';
 import AccountingTab from './components/AccountingTab';
@@ -181,6 +182,19 @@ function ARCreditMemo() {
   const [activeTab, setActiveTab] = useState('Contents');
   const [headerUdfs, setHeaderUdfs] = useState(() => createUdfState(HEADER_UDF_DEFINITIONS));
   const [formSettings, setFormSettings] = useState(() => readSavedFormSettings());
+  const {
+    headerFields: headerUdfFields,
+    rowFields: rowUdfFields,
+    visibleHeaderFields: visHdrUdfs,
+    createHeaderUdfState,
+    createRowUdfState,
+  } = useMarketingDocumentUdfs({
+    documentType: 'ar-credit-memo',
+    fallbackHeaderFields: [],
+    fallbackRowFields: [],
+    formSettings,
+    setFormSettings,
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarOrientation, setSidebarOrientation] = useState('vertical');
   const [formSettingsOpen, setFormSettingsOpen] = useState(false);
@@ -313,10 +327,10 @@ function ARCreditMemo() {
         
         setLines(
           Array.isArray(so.lines) && so.lines.length
-            ? so.lines.map(l => ({ ...createLine(), ...l, udf: { ...createUdfState(ROW_UDF_DEFINITIONS), ...(l.udf || {}) } }))
+            ? so.lines.map(l => ({ ...createLine(), ...l, udf: createRowUdfState(l.udf || {}) }))
             : [createLine()]
         );
-        setHeaderUdfs({ ...createUdfState(HEADER_UDF_DEFINITIONS), ...(so.header_udfs || {}) });
+        setHeaderUdfs(createHeaderUdfState(so.header_udfs || {}));
         if (so.header?.customerCode || so.header?.customer) {
           loadVendorDetails(so.header?.customerCode || so.header?.customer);
         }
@@ -416,7 +430,7 @@ function ARCreditMemo() {
                 baseEntry: l.baseEntry, // Delivery DocEntry
                 baseType: 15, // Delivery
                 baseLine: l.baseLine,
-                udf: { ...createUdfState(ROW_UDF_DEFINITIONS), ...(l.udf || {}) }
+                udf: createRowUdfState(l.udf || {})
               }))
             : [createLine()]
         );
@@ -486,7 +500,7 @@ function ARCreditMemo() {
     }));
 
     setHeaderUdfs({
-      ...createUdfState(HEADER_UDF_DEFINITIONS),
+      ...createHeaderUdfState(),
       ...srcHeaderUdfs,
     });
 
@@ -509,7 +523,7 @@ function ARCreditMemo() {
         baseLine:        l.lineNum         ?? l.LineNum         ?? idx,
         branch:          l.branch          || srcHeader.branch  || '',
         udf: {
-          ...createUdfState(ROW_UDF_DEFINITIONS),
+          ...createRowUdfState(),
           ...(l.udf || {}),
         },
       })));
@@ -1804,7 +1818,7 @@ function ARCreditMemo() {
       const r = currentDocEntry ? await updateARCreditMemo(currentDocEntry, payload) : await submitARCreditMemo(payload);
       const dn = r.data.doc_num ? ` Doc No: ${r.data.doc_num}.` : '';
       setCurrentDocEntry(null); setHeader(INIT_HEADER); setLines([createLine()]);
-      setHeaderUdfs(createUdfState(HEADER_UDF_DEFINITIONS)); setActiveTab('Contents');
+      setHeaderUdfs(createHeaderUdfState()); setActiveTab('Contents');
       setRefData(p => ({ ...p, contacts: [], pay_to_addresses: [] }));
       setValErrors({ header: {}, lines: {}, form: '' });
       
@@ -1823,12 +1837,11 @@ function ARCreditMemo() {
 
   const resetForm = () => {
     setCurrentDocEntry(null); setHeader(INIT_HEADER); setLines([createLine()]);
-    setHeaderUdfs(createUdfState(HEADER_UDF_DEFINITIONS)); setActiveTab('Contents');
+    setHeaderUdfs(createHeaderUdfState()); setActiveTab('Contents');
     setValErrors({ header: {}, lines: {}, form: '' });
     setPageState(p => ({ ...p, error: '', success: '' }));
   };
 
-  const visHdrUdfs = HEADER_UDF_DEFINITIONS.filter(f => formSettings.headerUdfs?.[f.key]?.visible !== false);
 
   // Continue in next part with render...
 
@@ -2401,8 +2414,8 @@ function ARCreditMemo() {
         isOpen={formSettingsOpen}
         onClose={() => setFormSettingsOpen(false)}
         matrixFields={[]}
-        headerUdfFields={HEADER_UDF_DEFINITIONS}
-        rowUdfFields={ROW_UDF_DEFINITIONS}
+        headerUdfFields={headerUdfFields}
+        rowUdfFields={rowUdfFields}
         formSettings={formSettings}
         onSettingChange={updateFormSetting}
       />

@@ -17,3 +17,8 @@ export const createReceipt = (data) =>
 
 export const lookupProductionOrdersForReceipt = (query = '') =>
   apiClient.get('/receipt-from-production/lookup/production-orders', { params: { query } }).then((r) => r.data);
+
+export const lookupBinLocationsForReceipt = (warehouse) =>
+  apiClient
+    .get('/receipt-from-production/lookup/bin-locations', { params: { warehouse } })
+    .then((r) => r.data);

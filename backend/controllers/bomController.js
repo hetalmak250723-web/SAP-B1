@@ -1,19 +1,12 @@
 const sapService = require("../services/sapService");
-const escapeOData = (v) => String(v || "").replace(/'/g, "''");
+const masterDataDbService = require("../services/masterDataDbService");
 
 // ── List BOMs ─────────────────────────────────────────────────────────────────
 const listBOMs = async (req, res) => {
   try {
-    await sapService.ensureSession();
     const { query = "", top = 50, skip = 0 } = req.query;
-    const filter = query
-      ? `&$filter=contains(TreeCode,'${escapeOData(query)}') or contains(ProductDescription,'${escapeOData(query)}')`
-      : "";
-    const resp = await sapService.request({
-      method: "GET",
-      url: `/ProductTrees?$select=TreeCode,TreeType,Quantity,ProductDescription,Warehouse,PriceList,PlanAvgProdSize${filter}&$top=${top}&$skip=${skip}`,
-    });
-    res.json(resp.data.value || []);
+    const rows = await masterDataDbService.listBOMs(query, top, skip);
+    res.json(rows);
   } catch (err) {
     res.status(err.response?.status || 500).json({ message: _sapMsg(err) });
   }
@@ -22,13 +15,12 @@ const listBOMs = async (req, res) => {
 // ── Get single BOM ────────────────────────────────────────────────────────────
 const getBOM = async (req, res) => {
   try {
-    await sapService.ensureSession();
     const code = req.params.treeCode;
-    const resp = await sapService.request({
-      method: "GET",
-      url: `/ProductTrees('${encodeURIComponent(code)}')`,
-    });
-    res.json(resp.data);
+    const row = await masterDataDbService.getBOM(code);
+    if (!row) {
+      return res.status(404).json({ message: `BOM "${code}" not found.` });
+    }
+    res.json(row);
   } catch (err) {
     res.status(err.response?.status || 500).json({ message: _sapMsg(err) });
   }
@@ -100,65 +92,46 @@ const deleteBOM = async (req, res) => {
 // ── Lookups ───────────────────────────────────────────────────────────────────
 const lookupItems = async (req, res) => {
   try {
-    await sapService.ensureSession();
     const q = req.query.query || "";
-    const filter = q ? `&$filter=contains(ItemCode,'${q}') or contains(ItemName,'${q}')` : "";
-    const resp = await sapService.request({
-      method: "GET",
-      url: `/Items?$select=ItemCode,ItemName,InventoryUOM,PurchaseItem,SalesItem,InventoryItem,QuantityOnStock,ItemsGroupCode&$top=50${filter}`,
-    });
-    res.json(resp.data.value || []);
+    const top = req.query.top || 1000;
+    const headerLookup = String(req.query.headerLookup || "").toLowerCase() === "true";
+    const rows = await masterDataDbService.lookupBOMItems(q, top, headerLookup);
+    res.json(rows);
   } catch (err) { res.status(500).json({ message: _sapMsg(err) }); }
 };
 
 const lookupWarehouses = async (req, res) => {
   try {
-    await sapService.ensureSession();
-    const resp = await sapService.request({ method: "GET", url: "/Warehouses?$select=WarehouseCode,WarehouseName" });
-    res.json(resp.data.value || []);
+    const rows = await masterDataDbService.lookupBOMWarehouses();
+    res.json(rows);
   } catch (err) { res.status(500).json({ message: _sapMsg(err) }); }
 };
 
 const lookupPriceLists = async (req, res) => {
   try {
-    await sapService.ensureSession();
-    const resp = await sapService.request({ method: "GET", url: "/PriceLists?$select=PriceListNo,PriceListName" });
-    res.json(resp.data.value || []);
+    const rows = await masterDataDbService.lookupBOMPriceLists();
+    res.json(rows);
   } catch (err) { res.status(500).json({ message: _sapMsg(err) }); }
 };
 
 const lookupDistributionRules = async (req, res) => {
   try {
-    await sapService.ensureSession();
-    const resp = await sapService.request({
-      method: "GET",
-      url: "/DistributionRules?$select=FactorCode,FactorDescription&$top=100",
-    });
-    res.json(resp.data.value || []);
+    const rows = await masterDataDbService.lookupDistributionRules();
+    res.json(rows);
   } catch (err) { res.status(500).json({ message: _sapMsg(err) }); }
 };
 
 const lookupProjects = async (req, res) => {
   try {
-    await sapService.ensureSession();
-    const resp = await sapService.request({
-      method: "GET",
-      url: "/Projects?$select=Code,Name&$top=100",
-    });
-    res.json(resp.data.value || []);
+    const rows = await masterDataDbService.lookupProjects();
+    res.json(rows);
   } catch (err) { res.status(500).json({ message: _sapMsg(err) }); }
 };
 
 const lookupGLAccounts = async (req, res) => {
   try {
-    await sapService.ensureSession();
-    const q = req.query.query || "";
-    const filter = q ? `?$filter=contains(Code,'${q}') or contains(Name,'${q}')` : "";
-    const resp = await sapService.request({
-      method: "GET",
-      url: `/ChartOfAccounts?$select=Code,Name${filter}&$top=50`,
-    });
-    res.json(resp.data.value || []);
+    const rows = await masterDataDbService.lookupGLAccounts(req.query.query || "", 50);
+    res.json(rows);
   } catch (err) { res.status(500).json({ message: _sapMsg(err) }); }
 };
 
@@ -222,27 +195,29 @@ function _buildPayload(body) {
 // ── Get Item Details (for auto-populating BOM fields) ────────────────────────
 const getItemDetails = async (req, res) => {
   try {
-    await sapService.ensureSession();
     const itemCode = req.params.itemCode;
-    const resp = await sapService.request({
-      method: "GET",
-      url: `/Items('${encodeURIComponent(itemCode)}')`,
-    });
-    const item = resp.data;
+    const item = await masterDataDbService.getBOMItemDetails(itemCode);
+    if (!item) {
+      return res.status(404).json({ message: `Item "${itemCode}" not found.` });
+    }
+    res.json(item);
+  } catch (err) {
+    res.status(err.response?.status || 500).json({ message: _sapMsg(err) });
+  }
+};
+
+// ── Get Item Price for specific Price List ───────────────────────────────────
+const getItemPrice = async (req, res) => {
+  try {
+    const itemCode = req.params.itemCode;
+    const priceList = req.query.priceList;
     
-    // Return relevant fields for BOM auto-population
-    res.json({
-      ItemCode: item.ItemCode,
-      ItemName: item.ItemName,
-      InventoryUOM: item.InventoryUOM,
-      DefaultWarehouse: item.DefaultWarehouse || item.WarehouseCode || "",
-      PriceList: item.Mainsupplier || "",
-      DistributionRule: item.DistributionRule || "",
-      Project: item.Project || "",
-      ManageSerialNumbers: item.ManageSerialNumbers,
-      ManageBatchNumbers: item.ManageBatchNumbers,
-      IssuePrimarilyBy: item.IssuePrimarilyBy || "",
-    });
+    if (!priceList) {
+      return res.status(400).json({ message: "Price list parameter is required." });
+    }
+    
+    const price = await masterDataDbService.getItemPriceForPriceList(itemCode, priceList);
+    res.json(price);
   } catch (err) {
     res.status(err.response?.status || 500).json({ message: _sapMsg(err) });
   }
@@ -252,5 +227,5 @@ module.exports = {
   listBOMs, getBOM, createBOM, updateBOM, deleteBOM,
   lookupItems, lookupWarehouses, lookupPriceLists,
   lookupDistributionRules, lookupProjects, lookupGLAccounts,
-  getItemDetails,
+  getItemDetails, getItemPrice,
 };

@@ -1,6 +1,8 @@
 const sapService = require('./sapService');
 const salesQuotationDb = require('./salesQuotationDbService');
 const { buildDocumentAdditionalExpenses } = require('./freightPayloadUtils');
+const { applyUdfs } = require('./udfPayloadUtils');
+const { hydrateMarketingDocumentUdfs } = require('./udfValueService');
 
 const normalizeBranchId = (branch) => {
   const normalized = String(branch || '').trim();
@@ -169,7 +171,11 @@ const getCustomerFilterOptions = async ({
 
 const getSalesQuotation = async (docEntry) => {
   try {
-    return await salesQuotationDb.getSalesQuotation(docEntry);
+    const result = await salesQuotationDb.getSalesQuotation(docEntry);
+    if (result?.sales_quotation) {
+      await hydrateMarketingDocumentUdfs(result.sales_quotation, { headerTable: 'OQUT', rowTable: 'QUT1', docEntry });
+    }
+    return result;
   } catch (error) {
     console.error('[Sales Quotation Service] Failed to load quotation:', error);
     throw error;
@@ -230,13 +236,14 @@ const submitSalesQuotation = async (payload) => {
             Quantity: Number(b.quantity),
           }));
         }
-        return line;
+        return applyUdfs(line, l.udf);
       }),
     };
 
     if (payload.header.placeOfSupply) {
       sapPayload.U_PlaceOfSupply = payload.header.placeOfSupply;
     }
+    applyUdfs(sapPayload, payload.header_udfs);
 
     console.log('🔥 SAP Quotation Payload:', JSON.stringify(sapPayload, null, 2));
 
@@ -297,18 +304,19 @@ const updateSalesQuotation = async (docEntry, payload) => {
       ...(Remarks && { Comments: Remarks }),
       ...(Freight > 0 && { TotalExpenses: Freight }),
       DocumentAdditionalExpenses: documentAdditionalExpenses,
-      DocumentLines: payload.lines.map(l => ({
+      DocumentLines: payload.lines.map(l => applyUdfs({
         ItemCode: l.itemNo,
         Quantity: Number(l.quantity),
         UnitPrice: Number(l.unitPrice),
         WarehouseCode: l.whse || '01',
         TaxCode: l.taxCode || 'IGST5',
-      })),
+      }, l.udf)),
     };
 
     if (payload.header.placeOfSupply) {
       sapPayload.U_PlaceOfSupply = payload.header.placeOfSupply;
     }
+    applyUdfs(sapPayload, payload.header_udfs);
 
     await sapService.request({
       method: 'patch',

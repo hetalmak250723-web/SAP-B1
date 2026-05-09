@@ -57,6 +57,7 @@ import SalesQuotation from "./pages/SalesQuotation";
 import SalesQuotationList from "./pages/SalesQuotationList";
 import SalesAnalysisReportPage from "./pages/SalesAnalysisReportPage";
 import PurchaseAnalysisReport from "./pages/PurchaseAnalysisReport";
+import PurchaseQuotationComparisonReport from "./pages/PurchaseQuotationComparisonReport";
 import PurchaseRequestReportPage from "./pages/PurchaseRequestReportPage";
 import ReportsStudioPage from "./pages/ReportsStudioPage";
 import "./App.css";
@@ -97,12 +98,16 @@ function App() {
               <Route path="/uom-group" element={<UoMGroup />} />
               <Route path="/payment-terms" element={<PaymentTerms />} />
               <Route path="/goods-receipt" element={<GoodsReceipt />} />
+              <Route path="/goods-receipt/new" element={<GoodsReceipt />} />
               <Route path="/goods-receipt/find" element={<GoodsReceiptList />} />
               <Route path="/goods-issue" element={<GoodsIssue />} />
+              <Route path="/goods-issue/new" element={<GoodsIssue />} />
               <Route path="/goods-issue/find" element={<GoodsIssueList />} />
               <Route path="/inventory-transfer-request" element={<InventoryTransferRequest />} />
+              <Route path="/inventory-transfer-request/new" element={<InventoryTransferRequest />} />
               <Route path="/inventory-transfer-request/find" element={<InventoryTransferRequestList />} />
               <Route path="/inventory-transfer" element={<InventoryTransfer />} />
+              <Route path="/inventory-transfer/new" element={<InventoryTransfer />} />
               <Route path="/inventory-transfer/find" element={<InventoryTransferList />} />
               <Route path="/delivery" element={<Delivery />} />
               <Route path="/delivery/new" element={<Delivery />} />
@@ -112,35 +117,51 @@ function App() {
               <Route path="/branch" element={<Branch />} />
               <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
               <Route path="/purchase-order" element={<PurchaseOrder />} />
+              <Route path="/purchase-order/new" element={<PurchaseOrder />} />
               <Route path="/purchase-order/find" element={<PurchaseOrderList />} />
               <Route path="/purchase-quotation" element={<PurchaseQuotation />} />
+              <Route path="/purchase-quotation/new" element={<PurchaseQuotation />} />
               <Route path="/purchase-quotation/find" element={<PurchaseQuotationList />} />
               <Route path="/purchase-request" element={<PurchaseRequest />} />
+              <Route path="/purchase-request/new" element={<PurchaseRequest />} />
               <Route path="/purchase-request/find" element={<PurchaseRequestList />} />
               <Route path="/grpo" element={<GoodsReceiptPO />} />
+              <Route path="/grpo/new" element={<GoodsReceiptPO />} />
               <Route path="/grpo/find" element={<GRPOList />} />
               <Route path="/sales-order" element={<SalesOrder />} />
+              <Route path="/sales-order/new" element={<SalesOrder />} />
               <Route path="/sales-order/old" element={<SalesOrder />} />
               <Route path="/sales-order/find" element={<SalesOrderList />} />
               <Route path="/sales-quotation" element={<SalesQuotation />} />
+              <Route path="/sales-quotation/new" element={<SalesQuotation />} />
               <Route path="/sales-quotation/find" element={<SalesQuotationList />} />
               <Route path="/reports" element={<ReportsStudioPage />} />
               <Route path="/reports/sales/analysis" element={<SalesAnalysisReportPage />} />
+              <Route path="/reports/sales/analysis/*" element={<SalesAnalysisReportPage />} />
               <Route path="/reports/purchasing/analysis" element={<PurchaseAnalysisReport />} />
               <Route path="/reports/purchase-analysis" element={<PurchaseAnalysisReport />} />
               <Route path="/reports/purchase/analysis" element={<PurchaseAnalysisReport />} />
+              <Route path="/reports/purchasing/purchase-quotation-comparison" element={<PurchaseQuotationComparisonReport />} />
+              <Route path="/reports/purchase-quotation-comparison" element={<PurchaseQuotationComparisonReport />} />
               <Route path="/reports/purchasing/purchase-request-report" element={<PurchaseRequestReportPage />} />
               <Route path="/bom" element={<BOM />} />
               <Route path="/production-order" element={<ProductionOrder />} />
+              <Route path="/issue-production" element={<Navigate to="/issue-for-production" replace />} />
               <Route path="/issue-for-production" element={<IssueForProduction />} />
+              <Route path="/receipt-production" element={<Navigate to="/receipt-from-production" replace />} />
               <Route path="/receipt-from-production" element={<ReceiptFromProduction />} />
               <Route path="/ap-invoice" element={<APInvoice />} />
+              <Route path="/ap-invoice/new" element={<APInvoice />} />
               <Route path="/ap-invoice/find" element={<APInvoiceList />} />
               <Route path="/ar-invoice" element={<ARInvoice />} />
+              <Route path="/ar-invoice/new" element={<ARInvoice />} />
               <Route path="/ar-invoice/find" element={<ARInvoiceList />} />
               <Route path="/ar-credit-memo" element={<ARCreditMemo />} />
+              <Route path="/ar-credit-memo/new" element={<ARCreditMemo />} />
               <Route path="/ar-credit-memo/find" element={<ARCreditMemoList />} />
+              <Route path="/return/new" element={<ARCreditMemo />} />
               <Route path="/ap-credit-memo" element={<APCreditMemo />} />
+              <Route path="/ap-credit-memo/new" element={<APCreditMemo />} />
               <Route path="/ap-credit-memo/find" element={<APCreditMemoList />} />
             </Route>
           </Route>

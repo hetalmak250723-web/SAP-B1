@@ -2,6 +2,8 @@ const sapService = require('./sapService');
 const arInvoiceDb = require('./arInvoiceDbService');
 const salesOrderDb = require('./salesOrderDbService');
 const { buildDocumentAdditionalExpenses } = require('./freightPayloadUtils');
+const { applyUdfs } = require('./udfPayloadUtils');
+const { hydrateMarketingDocumentUdfs } = require('./udfValueService');
 
 const normalizeBranchId = (branch) => {
   const normalized = String(branch || '').trim();
@@ -146,6 +148,9 @@ const getARInvoice = async (docEntry) => {
   try {
     // Use ODBC for reading single invoice
     const result = await arInvoiceDb.getARInvoice(docEntry);
+    if (result?.ar_invoice) {
+      await hydrateMarketingDocumentUdfs(result.ar_invoice, { headerTable: 'OINV', rowTable: 'INV1', docEntry });
+    }
     return result;
   } catch (error) {
     console.error('[AR Invoice Service] Failed to load AR invoice via ODBC:', error);
@@ -230,9 +235,11 @@ const submitARInvoice = async (payload) => {
         }
 
         console.log(`🔍 [ARInvoiceService] Transformed line ${index}:`, line);
+        applyUdfs(line, l.udf);
         return line;
       })
     };
+    applyUdfs(sapPayload, payload.header_udfs);
 
     console.log("🔥 [ARInvoiceService] SAP AR INVOICE PAYLOAD:", JSON.stringify(sapPayload, null, 2));
 
@@ -296,7 +303,7 @@ const updateARInvoice = async (docEntry, payload) => {
       Comments: payload.header.otherInstruction || payload.header.comments || undefined,
       DocumentAdditionalExpenses: documentAdditionalExpenses,
 
-      DocumentLines: payload.lines.map((l) => ({
+      DocumentLines: payload.lines.map((l) => applyUdfs({
         ItemCode: l.itemNo,
         Quantity: Number(l.quantity),
         UnitPrice: Number(l.unitPrice),
@@ -307,8 +314,9 @@ const updateARInvoice = async (docEntry, payload) => {
         BaseType: l.baseType ? Number(l.baseType) : undefined,
         BaseEntry: l.baseEntry ? Number(l.baseEntry) : undefined,
         BaseLine: l.baseLine !== undefined ? Number(l.baseLine) : undefined,
-      }))
+      }, l.udf))
     };
+    applyUdfs(sapPayload, payload.header_udfs);
 
     // Use Service Layer for PATCH operations
     const response = await sapService.request({
