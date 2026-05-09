@@ -5,6 +5,7 @@ import { normalizePath } from '../auth/routeUtils';
 import '../styles/sidebar.css';
 
 const DASHBOARD_PATH = '/dashboard';
+const REPORT_LAYOUT_MANAGER_PATH = '/reports';
 const STATIC_DASHBOARD_MENU = {
   menuId: 'dashboard-static',
   menuName: 'Dashboard',
@@ -40,10 +41,17 @@ const buildShortLabel = (label, fallback = 'MN') => {
   return `${words[0][0]}${words[1][0]}`.toUpperCase();
 };
 
+const LEGACY_REPORT_LAYOUT_MANAGER_NAME = 'report layout manager';
+const REPORT_STUDIO_NAME = 'report studio';
+
 const getDisplayMenuName = (menu) => {
   const normalized = String(menu?.menuName || '').trim().toLowerCase();
   if (normalized === 'sales' && !menu?.parentId) {
     return 'Sales - A/R';
+  }
+
+  if (normalized === REPORT_STUDIO_NAME) {
+    return 'Report Layout Manager';
   }
 
   return menu?.menuName;
@@ -109,7 +117,31 @@ const sortTopLevelMenus = (menus = []) =>
 
 const buildSidebarMenus = (menus = []) => {
   const { dashboardMenu, remainingMenus } = extractDashboardMenu(menus);
-  return [dashboardMenu, ...sortTopLevelMenus(remainingMenus)];
+
+  const removeHiddenSidebarItems = (items = []) =>
+    items.reduce((nextItems, item) => {
+      const menuPath = item?.menuPath ? normalizePath(item.menuPath) : '';
+      const children = removeHiddenSidebarItems(item.children || []);
+
+      if (
+        menuPath === REPORT_LAYOUT_MANAGER_PATH
+        || normalizeMenuPriorityName(item.menuName) === LEGACY_REPORT_LAYOUT_MANAGER_NAME
+      ) {
+        return nextItems;
+      }
+
+      if (!menuPath && !children.length) {
+        return nextItems;
+      }
+
+      nextItems.push({
+        ...item,
+        children,
+      });
+      return nextItems;
+    }, []);
+
+  return [dashboardMenu, ...sortTopLevelMenus(removeHiddenSidebarItems(remainingMenus))];
 };
 
 const hasActiveChild = (menu, pathname) => {

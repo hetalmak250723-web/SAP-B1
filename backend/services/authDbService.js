@@ -27,15 +27,53 @@ const getPool = async () => {
   return authPool;
 };
 
+const bindParams = (request, params = {}) => {
+  for (const [key, value] of Object.entries(params)) {
+    request.input(key, value);
+  }
+};
+
 const query = async (queryText, params = {}) => {
   const pool = await getPool();
   const request = pool.request();
 
-  for (const [key, value] of Object.entries(params)) {
-    request.input(key, value);
-  }
+  bindParams(request, params);
 
   return request.query(queryText);
+};
+
+const transaction = async (callback) => {
+  const pool = await getPool();
+  const tx = new sql.Transaction(pool);
+  await tx.begin();
+
+  const runQuery = async (queryText, params = {}) => {
+    const request = new sql.Request(tx);
+    bindParams(request, params);
+    return request.query(queryText);
+  };
+
+  try {
+    const result = await callback({
+      query: runQuery,
+      queryRows: async (queryText, params = {}) => {
+        const response = await runQuery(queryText, params);
+        return response.recordset || [];
+      },
+      queryOne: async (queryText, params = {}) => {
+        const rows = await runQuery(queryText, params);
+        return rows.recordset?.[0] || null;
+      },
+    });
+
+    await tx.commit();
+    return result;
+  } catch (error) {
+    if (!tx._aborted) {
+      await tx.rollback().catch(() => {});
+    }
+    throw error;
+  }
 };
 
 const queryRows = async (queryText, params = {}) => {
@@ -135,6 +173,10 @@ const getRoleRights = async (roleId) => queryRows(`
 `, { roleId });
 
 module.exports = {
+  query,
+  queryRows,
+  queryOne,
+  transaction,
   findUserByUsername,
   getActiveCompanies,
   getUserCompanies,

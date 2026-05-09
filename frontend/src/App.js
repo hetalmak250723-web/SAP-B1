@@ -59,7 +59,7 @@ import SalesAnalysisReportPage from "./pages/SalesAnalysisReportPage";
 import PurchaseAnalysisReport from "./pages/PurchaseAnalysisReport";
 import PurchaseQuotationComparisonReport from "./pages/PurchaseQuotationComparisonReport";
 import PurchaseRequestReportPage from "./pages/PurchaseRequestReportPage";
-import ReportLayoutManagerPage from "./pages/ReportLayoutManagerPage";
+import ReportsStudioPage from "./pages/ReportsStudioPage";
 import "./App.css";
 import "./styles/auth.css";
 
@@ -135,6 +135,7 @@ function App() {
               <Route path="/sales-quotation" element={<SalesQuotation />} />
               <Route path="/sales-quotation/new" element={<SalesQuotation />} />
               <Route path="/sales-quotation/find" element={<SalesQuotationList />} />
+              <Route path="/reports" element={<ReportsStudioPage />} />
               <Route path="/reports/sales/analysis" element={<SalesAnalysisReportPage />} />
               <Route path="/reports/sales/analysis/*" element={<SalesAnalysisReportPage />} />
               <Route path="/reports/purchasing/analysis" element={<PurchaseAnalysisReport />} />
@@ -143,7 +144,6 @@ function App() {
               <Route path="/reports/purchasing/purchase-quotation-comparison" element={<PurchaseQuotationComparisonReport />} />
               <Route path="/reports/purchase-quotation-comparison" element={<PurchaseQuotationComparisonReport />} />
               <Route path="/reports/purchasing/purchase-request-report" element={<PurchaseRequestReportPage />} />
-              <Route path="/report-layout-manager" element={<ReportLayoutManagerPage />} />
               <Route path="/bom" element={<BOM />} />
               <Route path="/production-order" element={<ProductionOrder />} />
               <Route path="/issue-production" element={<Navigate to="/issue-for-production" replace />} />

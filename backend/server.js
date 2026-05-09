@@ -44,7 +44,12 @@ const goodsIssueRoutes           = require('./routes/goodsIssue');
 const inventoryTransferRequestRoutes = require('./routes/inventoryTransferRequest');
 const inventoryTransferRoutes    = require('./routes/inventoryTransfer');
 const purchaseAnalysisRoutes     = require('./routes/reports/purchaseAnalysis.routes');
+
 const purchaseQuotationComparisonRoutes = require('./routes/reports/purchaseQuotationComparison.routes');
+
+const purchaseRequestReportRoutes = require('./routes/reports/purchaseRequestReport.routes');
+const reportStudioRoutes         = require('./routes/reportStudioRoutes');
+
 const reportLookupsRoutes        = require('./routes/reportLookups');
 const udfMetadataRoutes          = require('./routes/udfMetadata');
 
@@ -132,6 +137,7 @@ app.use('/api/sales-quotation',    salesQuotationRoutes);
 app.use('/api/blanket-agreements', blanketAgreementRoutes);
 app.use('/api',                    printRoutes);
 app.use('/api',                    reportLayoutRoutes);
+app.use('/api',                    reportStudioRoutes);
 app.use('/api/reports',            salesAnalysisRoutes);
 app.use('/api/bom',                bomRoutes);
 app.use('/api/production-order',   productionOrderRoutes);
@@ -149,7 +155,11 @@ app.use('/api/goods-issue',        goodsIssueRoutes);
 app.use('/api/inventory-transfer-request', inventoryTransferRequestRoutes);
 app.use('/api/inventory-transfer', inventoryTransferRoutes);
 app.use('/api/reports',            purchaseAnalysisRoutes);
+
 app.use('/api/reports',            purchaseQuotationComparisonRoutes);
+
+app.use('/api/reports',            purchaseRequestReportRoutes);
+
 app.use('/api/lookups',            reportLookupsRoutes);
 app.use('/api/udfs',               udfMetadataRoutes);
 app.use('/api',                    sapRoutes);

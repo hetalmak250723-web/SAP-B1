@@ -17,6 +17,16 @@ const REPORTS_MENU = {
   rights: DEFAULT_RIGHTS,
   children: [
     {
+      menuId: 'virtual-reports-studio',
+      menuName: 'Report Studio',
+      menuPath: '/reports',
+      parentId: 'virtual-reports-root',
+      icon: 'RS',
+      sortOrder: 980050,
+      rights: DEFAULT_RIGHTS,
+      children: [],
+    },
+    {
       menuId: 'virtual-reports-sales',
       menuName: 'Sales',
       menuPath: '',
