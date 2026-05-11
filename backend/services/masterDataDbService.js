@@ -1220,17 +1220,31 @@ const lookupBPSeries = async () => {
     ORDER BY CASE WHEN IsManual = 'Y' THEN 0 ELSE 1 END, Series
   `);
 
-  return rows.map((row) => ({
-    series: String(row.Series),
-    name: row.SeriesName || `Series ${row.Series}`,
-    prefix: row.BeginStr || "",
-    suffix: row.EndStr || "",
-    indicator: row.Indicator || "",
-    nextNumber: row.NextNumber ?? row.InitialNum ?? null,
-    locked: String(row.Locked || "").toUpperCase() === "Y",
-    isManual: String(row.IsManual || "").toUpperCase() === "Y",
-    isDefault: false,
-  }));
+  const seenDisplayNames = new Set();
+
+  return rows.map((row) => {
+    const seriesName = row.SeriesName || `Series ${row.Series}`;
+    const isManual =
+      String(row.IsManual || "").toUpperCase() === "Y" ||
+      seriesName.trim().toLowerCase() === "manual";
+
+    return {
+      series: String(row.Series),
+      name: seriesName,
+      prefix: row.BeginStr || "",
+      suffix: row.EndStr || "",
+      indicator: row.Indicator || "",
+      nextNumber: row.NextNumber ?? row.InitialNum ?? null,
+      locked: String(row.Locked || "").toUpperCase() === "Y",
+      isManual,
+      isDefault: false,
+    };
+  }).filter((row) => {
+    const key = row.isManual ? "manual" : row.name.trim().toLowerCase();
+    if (seenDisplayNames.has(key)) return false;
+    seenDisplayNames.add(key);
+    return true;
+  });
 };
 
 const getBPSeriesNextNumber = async (series) => {
@@ -1243,7 +1257,10 @@ const getBPSeriesNextNumber = async (series) => {
 
   if (!row) return null;
 
-  const isManual = String(row.IsManual || "").toUpperCase() === "Y";
+  const seriesName = row.SeriesName || `Series ${row.Series}`;
+  const isManual =
+    String(row.IsManual || "").toUpperCase() === "Y" ||
+    seriesName.trim().toLowerCase() === "manual";
   const nextNumber = row.NextNumber ?? row.InitialNum ?? null;
   const padded = nextNumber == null ? "" : String(nextNumber).padStart(5, "0");
 
@@ -1253,7 +1270,7 @@ const getBPSeriesNextNumber = async (series) => {
     prefix: row.BeginStr || "",
     suffix: row.EndStr || "",
     indicator: row.Indicator || "",
-    seriesName: row.SeriesName || `Series ${row.Series}`,
+    seriesName,
     isManual,
     formattedCode: isManual ? "" : `${row.BeginStr || ""}${padded}${row.EndStr || ""}`,
   };

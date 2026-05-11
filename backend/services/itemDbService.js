@@ -654,6 +654,45 @@ const getRecentItemCodes = async (query = '') => {
 };
 
 const generateItemCode = async (prefix) => {
+  const seriesCode = String(prefix || '').trim();
+  const seriesRows = await safe(
+    db.query(
+      `
+        SELECT TOP 1
+          Series,
+          SeriesName,
+          InitialNum,
+          NextNumber,
+          BeginStr,
+          EndStr,
+          Indicator,
+          Locked,
+          IsManual
+        FROM NNM1
+        WHERE ObjectCode IN ('4', 'OITM')
+          AND Series = @series
+          AND ISNULL(Locked, 'N') <> 'Y'
+      `,
+      { series: Number(seriesCode) || 0 }
+    )
+  );
+
+  if (seriesRows.length > 0) {
+    const row = seriesRows[0];
+    const isManual = String(row.IsManual || '').toUpperCase() === 'Y';
+    const nextNumber = row.NextNumber ?? row.InitialNum ?? null;
+    const number = nextNumber == null ? '' : String(nextNumber).padStart(6, '0');
+    return {
+      itemCode: isManual ? '' : `${row.BeginStr || ''}${number}${row.EndStr || ''}`,
+      nextNumber,
+      prefix: row.BeginStr || '',
+      suffix: row.EndStr || '',
+      series: String(row.Series),
+      seriesName: row.SeriesName || `Series ${row.Series}`,
+      isManual,
+    };
+  }
+
   const rows = await safe(
     db.query(
       `
@@ -680,6 +719,42 @@ const generateItemCode = async (prefix) => {
   }
 
   return { itemCode: String(nextNumber).padStart(6, '0') };
+};
+
+const getItemCodePrefixes = async () => {
+  const rows = await safe(
+    db.query(
+      `
+        SELECT
+          Series,
+          SeriesName,
+          InitialNum,
+          NextNumber,
+          BeginStr,
+          EndStr,
+          Indicator,
+          Locked,
+          IsManual
+        FROM NNM1
+        WHERE ObjectCode IN ('4', 'OITM')
+        ORDER BY CASE WHEN IsManual = 'Y' THEN 0 ELSE 1 END, Series
+      `
+    )
+  );
+
+  return rows.map((row) => {
+    const isManual = String(row.IsManual || '').toUpperCase() === 'Y';
+    return {
+      code: isManual ? 'Manual' : String(row.Series),
+      name: row.SeriesName || (isManual ? 'Manual' : `Series ${row.Series}`),
+      prefix: row.BeginStr || '',
+      suffix: row.EndStr || '',
+      indicator: row.Indicator || '',
+      nextNumber: row.NextNumber ?? row.InitialNum ?? null,
+      locked: String(row.Locked || '').toUpperCase() === 'Y',
+      isManual,
+    };
+  });
 };
 
 const checkItemCodeExists = async (itemCode) => {
@@ -946,6 +1021,7 @@ module.exports = {
   searchItems,
   getRecentItemCodes,
   generateItemCode,
+  getItemCodePrefixes,
   checkItemCodeExists,
   getItemPrices,
   getItemStock: getItemWarehouseInfoCollection,

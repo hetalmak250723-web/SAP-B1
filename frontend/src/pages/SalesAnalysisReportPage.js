@@ -243,11 +243,12 @@ function SalesAnalysisReportPage() {
   const [customerGroups, setCustomerGroups] = useState([{ code: '', name: 'All' }]);
   const [itemGroups, setItemGroups] = useState([{ code: '', name: 'All' }]);
   const criteriaWindow = useFloatingWindow({
-    isOpen: !reportResult,
+    isOpen: true,
     defaultTop: 22,
     taskId: 'sales-analysis-criteria',
     taskTitle: 'Sales Analysis Report - Selection Criteria',
     taskPath: '/reports/sales/analysis',
+    bounds: 'parent',
   });
   const reportWindow = useFloatingWindow({
     isOpen: Boolean(reportResult),
@@ -255,6 +256,7 @@ function SalesAnalysisReportPage() {
     taskId: 'sales-analysis-report',
     taskTitle: reportResult?.reportTitle || 'Sales Analysis Report',
     taskPath: '/reports/sales/analysis',
+    bounds: 'parent',
   });
 
   const currentSelectionLabel =
@@ -436,13 +438,14 @@ function SalesAnalysisReportPage() {
     setStatusMessage('');
   };
 
-  const handleCloseWindow = () => {
+  const handleCloseCriteriaWindow = () => {
     if (closeActiveAndRestorePrevious()) return;
-    if (reportResult) {
-      handleBackToCriteria();
-      return;
-    }
     navigate('/dashboard');
+  };
+
+  const handleCloseReportWindow = () => {
+    setReportResult(null);
+    setDetailReport(null);
   };
 
   const buildSummaryExportConfig = () => {
@@ -1237,12 +1240,17 @@ function SalesAnalysisReportPage() {
     const dimensionNameLabel = reportResult?.dimensionNameLabel || 'Customer Name';
     const periodColumns = Array.isArray(reportResult?.periodColumns) ? reportResult.periodColumns : [];
 
+    const reportStyle = {
+      ...(reportWindow.windowProps?.style || {}),
+      ...(reportWindow.isMinimized ? { top: 'auto', bottom: 0, left: 'auto', right: criteriaWindow.isMinimized ? 360 : 0, transform: 'none', width: 350 } : {})
+    };
+
     if (reportResult?.reportKind === 'itemSummary') {
       return (
-        <div className="sales-analysis-report-view">
           <div
             className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}${reportWindow.isMaximized ? ' is-maximized' : ''}`}
             {...reportWindow.windowProps}
+            style={reportStyle}
           >
             <div className="sales-analysis-window__titlebar" {...reportWindow.titleBarProps}>
               <div className="sales-analysis-window__title">
@@ -1257,7 +1265,7 @@ function SalesAnalysisReportPage() {
                   {reportWindow.isMinimized ? '□' : '-'}
                 </button>
                 <button type="button" aria-label={reportWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={reportWindow.toggleMaximize}>[]</button>
-                <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
+                <button type="button" aria-label="Close" onClick={handleCloseReportWindow}>x</button>
               </div>
             </div>
 
@@ -1316,16 +1324,15 @@ function SalesAnalysisReportPage() {
               </div>
             ) : null}
           </div>
-        </div>
       );
     }
 
     if (reportResult?.reportKind === 'salesEmployeeSummary') {
       return (
-        <div className="sales-analysis-report-view">
           <div
             className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}${reportWindow.isMaximized ? ' is-maximized' : ''}`}
             {...reportWindow.windowProps}
+            style={reportStyle}
           >
             <div className="sales-analysis-window__titlebar" {...reportWindow.titleBarProps}>
               <div className="sales-analysis-window__title">
@@ -1340,7 +1347,7 @@ function SalesAnalysisReportPage() {
                   {reportWindow.isMinimized ? '□' : '-'}
                 </button>
                 <button type="button" aria-label={reportWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={reportWindow.toggleMaximize}>[]</button>
-                <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
+                <button type="button" aria-label="Close" onClick={handleCloseReportWindow}>x</button>
               </div>
             </div>
 
@@ -1403,16 +1410,15 @@ function SalesAnalysisReportPage() {
               </div>
             ) : null}
           </div>
-        </div>
       );
     }
 
     if (reportResult?.reportLayout === 'period') {
       return (
-        <div className="sales-analysis-report-view">
           <div
             className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}${reportWindow.isMaximized ? ' is-maximized' : ''}`}
             {...reportWindow.windowProps}
+            style={reportStyle}
           >
             <div className="sales-analysis-window__titlebar" {...reportWindow.titleBarProps}>
               <div className="sales-analysis-window__title">
@@ -1427,7 +1433,7 @@ function SalesAnalysisReportPage() {
                   {reportWindow.isMinimized ? '□' : '-'}
                 </button>
                 <button type="button" aria-label={reportWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={reportWindow.toggleMaximize}>[]</button>
-                <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
+                <button type="button" aria-label="Close" onClick={handleCloseReportWindow}>x</button>
               </div>
             </div>
 
@@ -1528,15 +1534,14 @@ function SalesAnalysisReportPage() {
               </div>
             ) : null}
           </div>
-        </div>
       );
     }
 
     return (
-      <div className="sales-analysis-report-view">
         <div
           className={`sales-analysis-window sales-analysis-window--report${reportWindow.isMinimized ? ' is-minimized' : ''}${reportWindow.isMaximized ? ' is-maximized' : ''}`}
           {...reportWindow.windowProps}
+          style={reportStyle}
         >
           <div className="sales-analysis-window__titlebar" {...reportWindow.titleBarProps}>
             <div className="sales-analysis-window__title">
@@ -1551,7 +1556,7 @@ function SalesAnalysisReportPage() {
                 {reportWindow.isMinimized ? '□' : '-'}
               </button>
               <button type="button" aria-label={reportWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={reportWindow.toggleMaximize}>[]</button>
-              <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
+              <button type="button" aria-label="Close" onClick={handleCloseReportWindow}>x</button>
             </div>
           </div>
 
@@ -1651,39 +1656,18 @@ function SalesAnalysisReportPage() {
             </div>
           ) : null}
         </div>
-
-        <SalesAnalysisDetailModal
-          isOpen={Boolean(detailReport)}
-          isLoading={isLoadingDetail}
-          report={detailReport}
-          graphType={detailGraphType}
-          onGraphTypeChange={setDetailGraphType}
-          printDiagram={printDiagram}
-          onPrintDiagramChange={setPrintDiagram}
-          companyName={company?.companyName || 'SAP Business One'}
-          dateRanges={formState.dateRanges}
-          documentLabel={getExportDocumentLabel(formState.documentType)}
-          onOpenDocument={handleOpenInvoiceDocument}
-          onOpenCustomer={(row) => handleOpenBusinessPartner(row?.customerCode)}
-          onExportError={(message) => setStatusMessage(message)}
-          onClose={() => {
-            setDetailReport(null);
-            setIsLoadingDetail(false);
-          }}
-        />
-      </div>
     );
   };
 
-  if (reportResult) {
-    return renderReportView();
-  }
-
   return (
-    <div className="sales-analysis-page">
+    <div className="sales-analysis-page" style={{ overflow: 'hidden', position: 'relative', width: '100%', height: '100%' }}>
       <div
         className={`sales-analysis-window${criteriaWindow.isMinimized ? ' is-minimized' : ''}${criteriaWindow.isMaximized ? ' is-maximized' : ''}`}
         {...criteriaWindow.windowProps}
+        style={{
+          ...(criteriaWindow.windowProps?.style || {}),
+          ...(criteriaWindow.isMinimized ? { top: 'auto', bottom: 0, left: 'auto', right: 0, transform: 'none', width: 350 } : {})
+        }}
       >
         <div className="sales-analysis-window__titlebar" {...criteriaWindow.titleBarProps}>
           <div className="sales-analysis-window__title">Sales Analysis Report - Selection Criteria</div>
@@ -1696,7 +1680,7 @@ function SalesAnalysisReportPage() {
               {criteriaWindow.isMinimized ? '□' : '-'}
             </button>
             <button type="button" aria-label={criteriaWindow.isMaximized ? 'Restore Down' : 'Maximize'} onClick={criteriaWindow.toggleMaximize}>[]</button>
-            <button type="button" aria-label="Close" onClick={handleCloseWindow}>x</button>
+            <button type="button" aria-label="Close" onClick={handleCloseCriteriaWindow}>x</button>
           </div>
         </div>
 
@@ -1841,6 +1825,28 @@ function SalesAnalysisReportPage() {
           </div>
         ) : null}
       </div>
+
+      {reportResult && renderReportView()}
+
+      <SalesAnalysisDetailModal
+        isOpen={Boolean(detailReport)}
+        isLoading={isLoadingDetail}
+        report={detailReport}
+        graphType={detailGraphType}
+        onGraphTypeChange={setDetailGraphType}
+        printDiagram={printDiagram}
+        onPrintDiagramChange={setPrintDiagram}
+        companyName={company?.companyName || 'SAP Business One'}
+        dateRanges={formState.dateRanges}
+        documentLabel={getExportDocumentLabel(formState.documentType)}
+        onOpenDocument={handleOpenInvoiceDocument}
+        onOpenCustomer={(row) => handleOpenBusinessPartner(row?.customerCode)}
+        onExportError={(message) => setStatusMessage(message)}
+        onClose={() => {
+          setDetailReport(null);
+          setIsLoadingDetail(false);
+        }}
+      />
 
       <BusinessPartnerLookupModal
         isOpen={showCustomerLookup}

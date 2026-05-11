@@ -219,7 +219,7 @@ function Delivery() {
   const [headerUdfs, setHeaderUdfs] = useState(() => createUdfState(HEADER_UDF_DEFINITIONS));
   const [formSettings, setFormSettings] = useState(() => readSavedFormSettings());
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarOrientation, setSidebarOrientation] = useState('vertical');
+
   const [formSettingsOpen, setFormSettingsOpen] = useState(false);
   const [refData, setRefData] = useState({
     company: '', vendors: [], contacts: [], pay_to_addresses: [], items: [],
@@ -2402,18 +2402,9 @@ function Delivery() {
           className="del-btn"
           onClick={() => {
             setSidebarOpen(p => !p);
-            if (!sidebarOpen) setSidebarOrientation('horizontal');
           }}
         >
           {sidebarOpen ? 'Hide UDFs' : 'Show UDFs'}
-        </button>
-        <button
-          type="button"
-          className="del-btn"
-          onClick={() => setSidebarOrientation(o => (o === 'vertical' ? 'horizontal' : 'vertical'))}
-          disabled={!sidebarOpen}
-        >
-          Sidebar: {sidebarOrientation === 'vertical' ? 'Vertical' : 'Horizontal'}
         </button>
         <button type="button" className="del-btn" onClick={() => setFormSettingsOpen(p => !p)}>
           Form Settings
@@ -2514,25 +2505,9 @@ function Delivery() {
       )}
 
       <fieldset disabled={!isDocumentEditable} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-      <div style={{ padding: '0 12px', overflow: 'visible', minWidth: 0 }}>
-        <fieldset disabled={!hasBuyerCode} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-          {sidebarOpen && sidebarOrientation === 'horizontal' && (
-            <HeaderUdfSidebar
-              isOpen={sidebarOpen}
-              fields={visHdrUdfs}
-              formSettings={formSettings}
-              values={headerUdfs}
-              onFieldChange={handleHeaderUdfChange}
-              orientation="horizontal"
-            />
-          )}
-        </fieldset>
-        <div style={{ display: 'flex', gap: '12px', overflow: 'visible', minWidth: 0 }}>
-          <div style={{ 
-            flex: sidebarOpen && sidebarOrientation === 'vertical' ? '0 0 calc(75% - 6px)' : '1',
-            minWidth: 0,
-            overflow: 'visible'
-          }}>
+        <div className={`del-layout${sidebarOpen ? ' is-sidebar-open' : ''}`} style={{ padding: '0 12px', overflow: 'visible', minWidth: 0 }}>
+
+          <div className="del-layout__main" style={{ minWidth: 0, overflow: 'visible' }}>
 
             {/* ══ HEADER CARD ══════════════════════════════════════════════ */}
             <div className="del-header-card">
@@ -3017,25 +2992,22 @@ function Delivery() {
               </div>
             </div>
             )}
-            </fieldset>
+
+          </fieldset>
 
           </div>{/* end main col */}
 
-          <fieldset disabled={!hasBuyerCode} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-            {sidebarOpen && sidebarOrientation === 'vertical' && (
+          <fieldset className="del-layout__sidebar" disabled={!hasBuyerCode} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
               <HeaderUdfSidebar
+                className="del-layout__sidebar"
                 isOpen={sidebarOpen}
                 fields={visHdrUdfs}
                 formSettings={formSettings}
                 values={headerUdfs}
                 onFieldChange={handleHeaderUdfChange}
-                orientation="vertical"
               />
-            )}
           </fieldset>
         </div>
-      </div>
-
       </fieldset>
 
       {/* Form Settings Panel */}

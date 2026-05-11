@@ -545,7 +545,7 @@ export default function BusinessPartnerModule() {
     fetchBPGroups().then(setBpGroups).catch(() => {});
     // Try to load series from SAP — if none found, dropdown stays as Manual only
     fetchNumberingSeries()
-      .then((list) => setNumberingSeries(list.filter((s) => !s.isManual)))
+      .then(setNumberingSeries)
       .catch(() => setNumberingSeries([]));
   }, []);
 
@@ -592,8 +592,9 @@ export default function BusinessPartnerModule() {
 
   const handleSeriesChange = async (e) => {
     const val = e.target.value;
-    if (isManual(val)) {
-      setForm((p) => ({ ...p, Series: "0", CardCode: "" }));
+    const selectedSeries = numberingSeries.find((s) => String(s.series) === String(val));
+    if (isManual(val) || selectedSeries?.isManual) {
+      setForm((p) => ({ ...p, Series: val, CardCode: "" }));
       setTimeout(() => document.querySelector('input[name="CardCode"]')?.focus(), 50);
       return;
     }
@@ -815,13 +816,13 @@ export default function BusinessPartnerModule() {
               <select
                 className="im-field__select"
                 name="Series"
-                value={form.Series || "0"}
+                value={form.Series}
                 onChange={handleSeriesChange}
                 disabled={mode === MODES.UPDATE}
                 style={{ width: 120, flexShrink: 0 }}
               >
-                <option value="0">Manual</option>
-                {numberingSeries.filter((s) => !s.isManual).map((s) => (
+                <option value="">Select...</option>
+                {numberingSeries.map((s) => (
                   <option key={s.series} value={s.series}>
                     {s.name}{s.isDefault ? " ✓" : ""}
                   </option>

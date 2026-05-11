@@ -77,15 +77,17 @@ const createBP = async (req, res) => {
   if (!data.CardName) return res.status(400).json({ message: "CardName is required." });
   if (!data.CardType) return res.status(400).json({ message: "CardType is required." });
   const series = String(data.Series ?? "");
-  const isManual = !series || series === "0";
-
-  if (isManual && !data.CardCode) {
-    return res.status(400).json({ message: "CardCode is required for manual entry." });
-  }
+  let isManual = !series || series === "0";
 
   try {
+    const next = !isManual ? await masterDataDbService.getBPSeriesNextNumber(series) : null;
+    isManual = isManual || Boolean(next?.isManual);
+
+    if (isManual && !data.CardCode) {
+      return res.status(400).json({ message: "CardCode is required for manual entry." });
+    }
+
     if (!data.CardCode && !isManual) {
-      const next = await masterDataDbService.getBPSeriesNextNumber(series);
       if (!next || next.isManual || !next.formattedCode) {
         return res.status(400).json({ message: `Could not get next number for series '${series}'.` });
       }
@@ -307,33 +309,9 @@ const lookupWithholdingTaxCodes = async (req, res) => {
 const lookupNumberingSeries = async (_req, res) => {
   try {
     const rows = await masterDataDbService.lookupBPSeries();
-    const manual = {
-      series: "0",
-      name: "Manual",
-      prefix: "",
-      suffix: "",
-      indicator: "",
-      nextNumber: null,
-      locked: false,
-      isManual: true,
-      isDefault: true,
-    };
-    const nonManual = rows.filter((row) => !row.isManual);
-    res.json([manual, ...nonManual]);
+    res.json(rows);
   } catch (err) {
-    res.json([
-      {
-        series: "0",
-        name: "Manual",
-        prefix: "",
-        suffix: "",
-        indicator: "",
-        nextNumber: null,
-        locked: false,
-        isManual: true,
-        isDefault: true,
-      },
-    ]);
+    res.status(500).json({ message: err.message });
   }
 };
 

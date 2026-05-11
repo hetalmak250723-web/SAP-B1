@@ -43,6 +43,8 @@ const buildShortLabel = (label, fallback = 'MN') => {
 
 const LEGACY_REPORT_LAYOUT_MANAGER_NAME = 'report layout manager';
 const REPORT_STUDIO_NAME = 'report studio';
+const MASTER_MENU_NAME = 'master';
+const ALLOWED_MASTER_CHILDREN = new Set(['item master', 'business partner']);
 
 const getDisplayMenuName = (menu) => {
   const normalized = String(menu?.menuName || '').trim().toLowerCase();
@@ -121,7 +123,15 @@ const buildSidebarMenus = (menus = []) => {
   const removeHiddenSidebarItems = (items = []) =>
     items.reduce((nextItems, item) => {
       const menuPath = item?.menuPath ? normalizePath(item.menuPath) : '';
+      const isMasterMenu = normalizeMenuPriorityName(item.menuName) === MASTER_MENU_NAME;
       const children = removeHiddenSidebarItems(item.children || []);
+      const filteredChildren = isMasterMenu
+        ? removeHiddenSidebarItems(
+            (item.children || []).filter((child) =>
+              ALLOWED_MASTER_CHILDREN.has(normalizeMenuPriorityName(child.menuName)),
+            ),
+          )
+        : children;
 
       if (
         menuPath === REPORT_LAYOUT_MANAGER_PATH
@@ -130,13 +140,13 @@ const buildSidebarMenus = (menus = []) => {
         return nextItems;
       }
 
-      if (!menuPath && !children.length) {
+      if (!menuPath && !filteredChildren.length) {
         return nextItems;
       }
 
       nextItems.push({
         ...item,
-        children,
+        children: filteredChildren,
       });
       return nextItems;
     }, []);

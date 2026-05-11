@@ -551,25 +551,9 @@ const lookupItemProperties = async (req, res) => {
 };
 
 // ── Item Code Prefixes ────────────────────────────────────────────────────────
-// These prefixes are typically company-specific naming conventions
-// You can modify this list or fetch from a configuration table/file
 const lookupItemCodePrefixes = async (req, res) => {
   try {
-    // Option 1: Return hardcoded list (most common approach)
-    const prefixes = [
-      { code: "CG", name: "CG - Consumable Goods" },
-      { code: "FA", name: "FA - Fixed Assets" },
-      { code: "FG", name: "FG - Finished Goods" },
-      { code: "Manual", name: "Manual - Manual Entry" },
-      { code: "PM", name: "PM - Packaging Material" },
-      { code: "RM", name: "RM - Raw Material" },
-      { code: "SP", name: "SP - Spare Parts" },
-    ];
-    
-    // Option 2: You could also fetch from SAP UDF or custom table
-    // const resp = await sapService.request({ method: "GET", url: "/U_ITEM_PREFIXES" });
-    // const prefixes = resp.data.value.map(p => ({ code: p.Code, name: p.Name }));
-    
+    const prefixes = await itemService.getItemCodePrefixes();
     res.json(prefixes);
   } catch (err) {
     const msg = err.response?.data?.error?.message?.value || err.message;

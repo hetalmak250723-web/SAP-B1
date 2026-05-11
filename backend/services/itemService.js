@@ -125,6 +125,7 @@ module.exports = {
   searchItems: itemDbService.searchItems,
   getRecentItemCodes: itemDbService.getRecentItemCodes,
   generateItemCode: itemDbService.generateItemCode,
+  getItemCodePrefixes: itemDbService.getItemCodePrefixes,
   checkItemCodeExists: itemDbService.checkItemCodeExists,
   getItemPrices: itemDbService.getItemPrices,
   getItemStock: itemDbService.getItemStock,

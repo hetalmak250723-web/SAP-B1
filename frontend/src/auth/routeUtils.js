@@ -1,6 +1,23 @@
+const normalizeMenuPath = (rawPath) => {
+  const pathValue = String(rawPath || '').trim();
+  const trimmed = pathValue.replace(/^\/+|\/+$/g, '').trim();
+
+  if (!trimmed) return '';
+
+  const normalized = trimmed
+    .replace(/\\/g, '/')
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-zA-Z0-9\-/]+/g, '')
+    .replace(/\/{2,}/g, '/')
+    .replace(/-{2,}/g, '-')
+    .toLowerCase();
+
+  return normalized.startsWith('/') ? normalized : `/${normalized}`;
+};
+
 export const normalizePath = (path) => {
-  const normalized = `/${String(path || '').trim().replace(/^\/+|\/+$/g, '')}`;
-  return normalized === '/' ? '/dashboard' : normalized;
+  const normalized = normalizeMenuPath(path);
+  return normalized === '' ? '/dashboard' : normalized;
 };
 
 export const flattenMenuTree = (menus = []) => {

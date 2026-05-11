@@ -221,17 +221,12 @@ export default function ItemMaster() {
   // Load item prefixes and warehouses on mount
   useEffect(() => {
     // Load item code prefixes
-    fetchItemCodePrefixes().then(setItemCodePrefixes).catch(() => {
-      setItemCodePrefixes([
-        { code: "CG", name: "CG - Consumable Goods" },
-        { code: "FA", name: "FA - Fixed Assets" },
-        { code: "FG", name: "FG - Finished Goods" },
-        { code: "Manual", name: "Manual - Manual Entry" },
-        { code: "PM", name: "PM - Packaging Material" },
-        { code: "RM", name: "RM - Raw Material" },
-        { code: "SP", name: "SP - Spare Parts" },
-      ]);
-    });
+    fetchItemCodePrefixes()
+      .then(setItemCodePrefixes)
+      .catch((err) => {
+        console.error("Failed to load item numbering series:", err);
+        setItemCodePrefixes([]);
+      });
     
     // Load warehouses for warehouse stock table
     fetchWarehouses()
@@ -450,7 +445,7 @@ export default function ItemMaster() {
         const prefix = name === "ItemCodePrefix" ? value : prev.ItemCodePrefix;
         const number = name === "ItemCodeNumber" ? value : prev.ItemCodeNumber;
         if (prefix === "Manual") updated.ItemCode = number;
-        else updated.ItemCode = prefix && number ? `${prefix}-${number}` : prefix || number || "";
+        else updated.ItemCode = number || "";
       }
       
       return updated;
@@ -465,7 +460,7 @@ export default function ItemMaster() {
             setForm(prev => ({
               ...prev,
               ItemCodeNumber: data.itemCode,
-              ItemCode: `${value}-${data.itemCode}`
+              ItemCode: data.itemCode
             }));
           }
         })
@@ -806,7 +801,9 @@ export default function ItemMaster() {
                 <option value="">Select...</option>
                 {itemCodePrefixes.map((prefix) => (
                   <option key={prefix.code} value={prefix.code}>
-                    {prefix.code}
+                    {prefix.isManual
+                      ? "Manual"
+                      : `${prefix.prefix || prefix.name || prefix.code}${prefix.name && prefix.prefix ? ` - ${prefix.name}` : ""}`}
                   </option>
                 ))}
               </select>
@@ -1017,6 +1014,9 @@ function buildPayload(form, prices = [], barcodes = [], uoms = [], prefVendors =
   const p = {};
   p.ItemCode  = form.ItemCode;
   p.ItemName  = form.ItemName;
+  if (form.ItemCodePrefix && form.ItemCodePrefix !== "Manual" && !Number.isNaN(Number(form.ItemCodePrefix))) {
+    p.Series = Number(form.ItemCodePrefix);
+  }
   p.InventoryItem = form.InventoryItem || "tNO";
   p.SalesItem     = form.SalesItem     || "tNO";
   p.PurchaseItem  = form.PurchaseItem  || "tNO";
